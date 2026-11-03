@@ -55,6 +55,7 @@ export default defineConfig({
           { text: 'Events', link: '/advanced/events' },
           { text: 'Queue', link: '/advanced/queue' },
           { text: 'File Uploads', link: '/advanced/file-uploads' },
+          { text: 'Views', link: '/advanced/views' },
           { text: 'Caching', link: '/advanced/caching' },
           { text: 'Logging', link: '/advanced/logging' },
           { text: 'Plugins', link: '/advanced/plugins' },
