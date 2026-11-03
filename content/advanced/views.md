@@ -78,31 +78,32 @@ const inline = getViewEngine().renderString("Hi {{ name }}", { name: "Ana" });
 
 ## Syntax
 
-| Syntax                                                                                             | Meaning                                              |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `{{ expr }}`                                                                                       | Echo, HTML-escaped. `expr` is any JS expression      |
-| `{!! expr !!}`                                                                                     | Echo raw (unescaped). Only use it on trusted HTML    |
-| `{{-- comment --}}`                                                                                | Removed at compile time                              |
-| `@{{ x }}` / `@@if`                                                                                | Literal `{{ x }}` / `@if` (for Vue/Alpine)           |
-| `@if(c)` `@elseif(c)` `@else` `@endif`                                                             | Conditionals                                         |
-| `@unless(c)` … `@endunless`                                                                        | `if (!c)`                                            |
-| `@isset(a.b.c)` … `@endisset`                                                                      | True if the path exists and isn't null. Never throws |
-| `@foreach(items as item)` / `@foreach(obj as key => value)`                                        | Arrays, Maps, Sets, iterables and plain objects      |
-| `loop.index` `.iteration` `.first` `.last` `.count` `.remaining` `.even` `.odd` `.depth` `.parent` | Like Blade's `$loop`                                 |
-| `@for(let i = 0; i < 3; i++)` … `@endfor`, `@while(c)` … `@endwhile`                               | Plain JS loops                                       |
-| `@break` `@continue` / `@break(cond)`                                                              | Loop control                                         |
-| `@js(const x = 1)` / `@js … @endjs`                                                                | Raw JS (Blade's `@php`)                              |
-| `@json(value)`                                                                                     | JSON that's safe inside `<script>`                   |
-| `@csrf` `@method('PUT')`                                                                           | Hidden form inputs (`@csrf` reads `csrfToken`)       |
-| `@include('partials.nav', { extra })`                                                              | Render another view                                  |
-| `@extends('layouts.app')`                                                                          | Use a layout                                         |
-| `@section('name')` … `@endsection` / `@section('title', 'Home')`                                   | Define a section                                     |
-| `@yield('name', 'default')`                                                                        | Print a section                                      |
-| `@section('sidebar')` … `@show`                                                                    | Define and print at once (inside layouts)            |
-| `@parent`                                                                                          | Inside a child section: insert the layout's version  |
-| `@push('scripts')` … `@endpush` / `@stack('scripts')`                                              | Collect content from many views                      |
-| `<x-alert type="error" :count="n">` … `</x-alert>`                                                 | Component, `views/components/alert.megh.html`        |
-| `<x-slot:title>` … `</x-slot>`                                                                     | Named slot. The rest is `{{ slot }}`                 |
+| Syntax                                                                                             | Meaning                                                  |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `{{ expr }}`                                                                                       | Echo, HTML-escaped. `expr` is any JS expression          |
+| `{!! expr !!}`                                                                                     | Echo raw (unescaped). Only use it on trusted HTML        |
+| `{{-- comment --}}`                                                                                | Removed at compile time                                  |
+| `@{{ x }}` / `@@if`                                                                                | Literal `{{ x }}` / `@if` (for Vue/Alpine)               |
+| `@if(c)` `@elseif(c)` `@else` `@endif`                                                             | Conditionals                                             |
+| `@unless(c)` … `@endunless`                                                                        | `if (!c)`                                                |
+| `@isset(a.b.c)` … `@endisset`                                                                      | True if the path exists and isn't null. Never throws     |
+| `@foreach(items as item)` / `@foreach(obj as key => value)`                                        | Arrays, Maps, Sets, iterables and plain objects          |
+| `loop.index` `.iteration` `.first` `.last` `.count` `.remaining` `.even` `.odd` `.depth` `.parent` | Like Blade's `$loop`                                     |
+| `@for(let i = 0; i < 3; i++)` … `@endfor`, `@while(c)` … `@endwhile`                               | Plain JS loops                                           |
+| `@break` `@continue` / `@break(cond)`                                                              | Loop control                                             |
+| `@js(const x = 1)` / `@js … @endjs`                                                                | Raw JS (Blade's `@php`)                                  |
+| `@json(value)`                                                                                     | JSON that's safe inside `<script>`                       |
+| `@csrf` `@method('PUT')`                                                                           | Hidden form inputs (`@csrf` reads `csrfToken`)           |
+| `@include('partials.nav', { extra })`                                                              | Render another view                                      |
+| `@extends('layouts.app')`                                                                          | Use a layout                                             |
+| `@section('name')` … `@endsection` / `@section('title', 'Home')`                                   | Define a section                                         |
+| `@yield('name', 'default')`                                                                        | Print a section                                          |
+| `@section('sidebar')` … `@show`                                                                    | Define and print at once (inside layouts)                |
+| `@parent`                                                                                          | Inside a child section: insert the layout's version      |
+| `@push('scripts')` … `@endpush` / `@stack('scripts')`                                              | Collect content from many views                          |
+| `<x-alert type="error" :count="n">` … `</x-alert>`                                                 | Component, `views/components/alert.megh.html`            |
+| `<x-slot:title>` … `</x-slot>`                                                                     | Named slot. The rest is `{{ slot }}`                     |
+| `@react(props)` … `@endreact`                                                                      | React component mounted in the browser ([below](#react)) |
 
 A directive glued to a word is plain text, which keeps `support@example.com`
 intact: write `done @endif`, not `done@endif`. Only registered directive names
@@ -159,6 +160,72 @@ are recognised, so `@media` in CSS stays as is.
 The child renders first and fills its sections, then the layout renders and
 `@yield`s them. Anything the child prints outside a section is dropped, as in
 Blade.
+
+## React
+
+An `@react` block holds a React component written in JSX (or TSX). Megh
+compiles it once, on the server, and the page gets an empty element plus a
+`<script type="module">` that mounts the component in the browser. The
+expression in `@react(...)` becomes the component's props:
+
+```html [views/dashboard.megh.html]
+@react({ todos, user: user.name })
+  import { useState } from "react";
+
+  function App({ todos, user }: { todos: Todo[]; user: string }) {
+    const [q, setQ] = useState("");
+    const shown = todos.filter((t) => t.title.includes(q));
+    return (
+      <div style={{ padding: 8 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} />
+        <p>{shown.length} todos for {user}</p>
+      </div>
+    );
+  }
+@endreact
+```
+
+- The block must define a component named `App`, or `export default` one.
+- `React` is available without importing it, and `import ... from "react"` works.
+- The block body is not parsed as a template, so `{{ }}` is a JSX style object
+  there, not an echo. Server data reaches the component only through props,
+  which are serialised with the same escaping as `@json`.
+- Each block is its own island with its own id. A page can have several.
+
+Compiling JSX needs `@swc/core`:
+
+```sh
+npm install @swc/core
+```
+
+### Where React comes from
+
+Bare imports are rewritten to URLs, like an import map. By default React 19
+loads from [esm.sh](https://esm.sh). Change the URLs to self-host, and add
+entries for other packages your components import:
+
+```ts
+app.useViews({
+  react: {
+    imports: {
+      react: "/static/vendor/react.mjs",
+      "react/jsx-runtime": "/static/vendor/react-jsx-runtime.mjs",
+      "react-dom/client": "/static/vendor/react-dom-client.mjs",
+      "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.3",
+    },
+  },
+});
+```
+
+Relative and absolute URLs (`/static/chart.js`, `https://…`) are left as
+they are. Any other bare import is an error at compile time, because the
+browser could not load it.
+
+::: tip
+Islands render in the browser only. The server sends an empty element, so the
+content appears once the scripts load. If your Content Security Policy blocks
+inline scripts, allow them for these pages, for example with a nonce.
+:::
 
 ## Custom directives
 
