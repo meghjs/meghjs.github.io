@@ -1,6 +1,6 @@
 ---
 title: Upgrading to 0.6
-description: "What changes in Megh 0.6.0: removed no-op APIs, run() reading PORT, framework logs through the logger, a safer scaffolded .env, MeghScheduler exported, and new docs."
+description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, framework logs through the logger and a safer scaffolded .env in 0.6.0; mail, security headers and rate limiting in 0.6.1."
 ---
 
 # Upgrading to 0.6
@@ -9,13 +9,50 @@ description: "What changes in Megh 0.6.0: removed no-op APIs, run() reading PORT
 framework messages through the logger. Most apps only need to delete a call
 or two. Read [Breaking in 0.6.0](#breaking-in-0-6-0) before upgrading.
 
-A `0.x` minor release can contain breaking changes. See the
-[versioning policy](/reference/versioning).
+0.6.1 adds features and fixes with no breaking changes. See
+[New in 0.6.1](#new-in-0-6-1).
+
+A `0.x` minor release can contain breaking changes; patch releases such as
+0.6.1 don't. See the [versioning policy](/reference/versioning).
 
 ```sh
-npm i @meghjs/core@^0.6.0
-npm i -D @meghjs/cli@^0.6.0
+npm i @meghjs/core@^0.6.1
+npm i -D @meghjs/cli@^0.6.1
 ```
+
+## New in 0.6.1
+
+No code changes needed. Everything here is opt-in.
+
+- **Mail.** Inject `Mailer` and send `Mailable` classes over SMTP, or over
+  SendGrid, Mailgun, Postmark or Resend's HTTP APIs. A failover mailer tries
+  each in turn. `queue()` and `later()` send through the queue. Turn it on
+  with `app.useMail()`, configured from `MEGH_MAIL_*` in `.env`; options
+  passed to `useMail()` override them. See [Mail](/advanced/mail).
+- **Security headers.** `app.useSecurityHeaders()` sends a Content Security
+  Policy, HSTS, `X-Frame-Options`, `nosniff` and the other usual headers. It
+  is built in, so `@fastify/helmet` is no longer needed. See
+  [Security Hardening](/production/security#add-security-headers).
+- **Rate limiting.** `app.useRateLimit()` limits requests per client and
+  answers 429. `@RateLimit()` gives a route its own limit, and
+  `RedisRateLimitStore` shares counts between replicas. It is built in, so
+  `@fastify/rate-limit` is no longer needed. See
+  [Security Hardening](/production/security#add-rate-limits).
+- **CLI:**
+  - `megh make:mail <Name>` creates a Mailable.
+  - `megh new` offers a Mail feature.
+  - `megh new` runs `git init` (skip it with `--skip-git` or
+    `MEGH_SKIP_GIT=1`).
+  - Generated resource services have JSDoc.
+- **Fixes:**
+  - `megh new` now installs the OpenAPI packages when you pick OpenAPI or
+    Scalar, so the generated app starts.
+  - The "No mailer is set" error lists every configured mailer.
+
+If you registered `@fastify/helmet` or `@fastify/rate-limit` yourself in an
+`onInit` hook, as the 0.6.0 docs suggested, that keeps working. To switch,
+remove the `app.app.register(...)` calls, uninstall the two packages, and
+call `app.useSecurityHeaders()` and `app.useRateLimit()` instead.
 
 ## Breaking in 0.6.0
 

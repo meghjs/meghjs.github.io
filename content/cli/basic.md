@@ -25,6 +25,7 @@ npm i -g @meghjs/cli
 | `make:service` | `m:s` | Create a service |
 | `make:config` | `m:cnf` | Create a config class |
 | `make:middleware` | `m:mlwr` | Create a middleware |
+| `make:mail` | `m:mail` | Create a Mailable in `src/mail/` |
 | `make:migration` | `m:mig` | Create a database migration |
 | `make:seeder` | `m:sd` | Create a database seeder |
 | `make:factory` | `m:f` | Create a model factory with Faker values |
@@ -47,7 +48,7 @@ Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
 | Page | Commands |
 |---|---|
-| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `update:model`, `make:middleware`, `make:config` |
+| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `update:model`, `make:middleware`, `make:config`, `make:mail` |
 | [Database Commands](/cli/database) | `make:migration`, `migrate*`, `make:seeder`, `db:seed`, `make:factory` |
 | [Scaffold](/cli/scaffold/) | `--template`, `--fields`, `scaffold:domain`, `scaffold:auth`, `scaffold:rbac`, `template:list` |
 
@@ -67,7 +68,11 @@ npx @meghjs/cli new myapi --yes --database postgres   # also: mysql, sqlite, mss
 
 `--database` (or the `orm` feature, which defaults to SQLite) installs the
 driver, adds `app.useMeghORM()` to `src/app.ts`, writes `DATABASE_URL` to
-`.env` and creates `src/database/migrations/`. Then:
+`.env` and creates `src/database/migrations/`.
+
+The new project is put under git with `git init`, unless git isn't installed
+or the folder is already inside a repository. Pass `--skip-git` (or set
+`MEGH_SKIP_GIT=1`) to skip it. Then:
 
 ```sh
 cd myapi
