@@ -35,6 +35,9 @@ npm i -D @meghjs/cli@^0.6.1
   TypeORM and Knex are no longer set up by `megh new`; asking for them with
   `--features` prints how to add them. Existing projects are not affected.
   See [Mail: Setting it up](/advanced/mail#setting-it-up).
+- **Generated models put each decorator on its own line**, with a blank
+  line between columns. `update:model` still reads models in the one-line
+  style, and keeps hand-written fields as they are.
 
 ## New in 0.6.1
 
