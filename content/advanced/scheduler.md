@@ -11,6 +11,11 @@ then decorate its methods with `@Cron`, `@Interval` or `@Timeout`.
 Cron support comes from [node-cron](https://github.com/node-cron/node-cron),
 which is installed with `@meghjs/core`.
 
+::: tip Generate one
+`npx megh make:task CleanupTokens --cron "0 3 * * *"` writes a task class to
+fill in. See [Generators](/cli/generators#scheduled-tasks).
+:::
+
 ## A task class
 
 ```ts [src/tasks/report.task.ts]

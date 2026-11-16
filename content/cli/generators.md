@@ -297,6 +297,110 @@ export class OrderShippedMail extends Mailable {
 If `src/app.ts` doesn't call `app.useMail()` yet, the command says so. See
 [Mail](/advanced/mail).
 
+## Events
+
+```sh
+npx megh make:event UserCreated
+npx megh make:listener SendWelcomeEmail --event UserCreated
+```
+
+`make:event` writes `src/events/user-created.event.ts`: a `UserCreatedEvent`
+extending `MeghEvent`, with a `UserCreatedPayload` type to fill in.
+
+`make:listener` writes `src/listeners/send-welcome-email.listener.ts`: a
+`SendWelcomeEmailListener` typed to the event, marked `@AppService` so it can
+inject services. With `--event` (`-e`), the event is created too if it doesn't
+exist yet; without it, the listener takes any `MeghEvent`.
+
+```ts [src/listeners/send-welcome-email.listener.ts]
+import { AppService, MeghEventListener } from '@meghjs/core';
+import { UserCreatedEvent } from '../events/user-created.event';
+
+@AppService
+export class SendWelcomeEmailListener extends MeghEventListener<UserCreatedEvent> {
+  async handler(event: UserCreatedEvent): Promise<void> {
+    // event.payload is the data; event.name and event.timestamp are set for you.
+  }
+}
+```
+
+Listeners are registered by hand, once at startup. The command prints the line
+to add to `src/app.ts`:
+
+```ts
+EventRegistry.getInstance().register(UserCreatedEvent, MeghContainer.get(SendWelcomeEmailListener));
+```
+
+See [Events](/advanced/events).
+
+## Queues and workers
+
+```sh
+npx megh make:queue OrderExport                  # queue "order-export"
+npx megh make:worker Report --queue reports      # consumes "reports"
+```
+
+`make:queue` writes `src/queues/order-export.queue.ts`: an `OrderExportQueue`
+that both adds jobs and handles them, with a payload type and one
+`@JobHandler('process')` method. `--queue` (`-q`) sets the queue name in Redis;
+it defaults to the kebab-case name.
+
+```ts [src/queues/order-export.queue.ts]
+import { Job, JobHandler, MeghQueue, Queue } from '@meghjs/core';
+
+export type OrderExportPayload = {
+  id: number; // replace with what the job needs
+};
+
+@Queue({ name: 'order-export' })
+export class OrderExportQueue extends MeghQueue<OrderExportPayload> {
+  constructor() {
+    super();
+  }
+
+  @JobHandler('process')
+  async handleProcess(job: Job<OrderExportPayload>) {
+    // job.data is the payload
+  }
+}
+```
+
+`make:worker` writes a `MeghWorkerBase` with `process()`, `onCompleted()` and
+`onFailed()`, for a queue another part of the system fills.
+
+Both print `app.useWorker([...])` if `src/app.ts` doesn't register the class,
+and `npm i bullmq ioredis` if the project doesn't depend on BullMQ. Redis
+defaults to `127.0.0.1:6379`; set `MEGH_QUEUE_DRIVER=memory` to run jobs
+without it. See [Queue](/advanced/queue).
+
+## Scheduled tasks
+
+```sh
+npx megh make:task CleanupTokens                    # hourly
+npx megh make:task NightlyReport --cron "0 3 * * *" # 03:00 every day
+npx megh make:task PollPayments --interval 30000    # every 30 seconds
+```
+
+Writes `src/tasks/cleanup-tokens.task.ts`: a `@ScheduledTask()` class with one
+`@Cron` (or, with `--interval`, `@Interval`) method. `make:scheduler` is an
+alias.
+
+```ts [src/tasks/cleanup-tokens.task.ts]
+import { Cron, ScheduledTask } from '@meghjs/core';
+
+@ScheduledTask()
+export class CleanupTokensTask {
+  @Cron('0 * * * *') // every hour, on the hour
+  async run() {
+    // your logic goes here
+  }
+}
+```
+
+`--cron` takes 5 fields, or 6 with seconds first. The command prints
+`app.useScheduler([...])` unless `src/app.ts` already lists the class or scans a
+folder with `useScheduler({ path })`. See [Scheduler](/advanced/scheduler).
+
 ## Config
 
 ```sh

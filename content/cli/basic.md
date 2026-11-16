@@ -26,6 +26,11 @@ npm i -g @meghjs/cli
 | `make:config` | `m:cnf` | Create a config class |
 | `make:middleware` | `m:mlwr` | Create a middleware |
 | `make:mail` | `m:mail` | Create a Mailable in `src/mail/` |
+| `make:event` | `m:ev` | Create an event in `src/events/` |
+| `make:listener` | `m:lsn` | Create an event listener in `src/listeners/` (`--event` to type it) |
+| `make:queue` | `m:q` | Create a queue with a job handler in `src/queues/` |
+| `make:worker` | `m:w` | Create a worker for a queue in `src/workers/` |
+| `make:task` | `m:task`, `make:scheduler` | Create a scheduled task in `src/tasks/` (`--cron`, `--interval`) |
 | `make:migration` | `m:mig` | Create a database migration |
 | `make:seeder` | `m:sd` | Create a database seeder |
 | `make:factory` | `m:f` | Create a model factory with Faker values |
@@ -48,7 +53,7 @@ Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
 | Page | Commands |
 |---|---|
-| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `sync:model`, `make:middleware`, `make:config`, `make:mail` |
+| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `update:model`, `make:middleware`, `make:config`, `make:mail`, `make:event`, `make:listener`, `make:queue`, `make:worker`, `make:task` |
 | [Database Commands](/cli/database) | `make:migration`, `migrate*`, `make:seeder`, `db:seed`, `make:factory` |
 | [Scaffold](/cli/scaffold/) | `--template`, `--fields`, `scaffold:domain`, `scaffold:auth`, `scaffold:rbac`, `template:list` |
 
