@@ -15,8 +15,8 @@ versions:
 
 ```json [package.json]
 {
-  "dependencies": { "@meghjs/core": "0.6.0" },
-  "devDependencies": { "@meghjs/cli": "0.6.0" }
+  "dependencies": { "@meghjs/core": "0.6.1" },
+  "devDependencies": { "@meghjs/cli": "0.6.1" }
 }
 ```
 
@@ -26,8 +26,12 @@ Megh is in `0.x`. Until 1.0:
 
 | Release | Can contain |
 |---------|-------------|
-| Minor (`0.5.0` → `0.6.0`) | New features **and breaking changes** |
-| Patch (`0.5.4` → `0.5.5`) | Bug fixes and small additions. No breaking changes |
+| Minor (`0.6.x` → `0.7.0`) | Breaking changes, plus anything else |
+| Patch (`0.6.0` → `0.6.1`) | Bug fixes and new features. No breaking changes |
+
+New features ship in patch releases, so a minor release before 1.0 means
+something can break: read its upgrade guide first. 0.7.0 is the last minor
+before 1.0.
 
 Pin an exact version or use a tilde range (`~0.6.0`) so `npm install` never
 picks up a new minor on its own. A caret range (`^0.6.0`) on a `0.x` version
