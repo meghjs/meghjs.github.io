@@ -22,7 +22,7 @@ export default defineConfig({
       { text: 'CLI', link: '/cli/basic', activeMatch: '^/cli/' },
       { text: 'Reference', link: '/reference/api', activeMatch: '^/reference/' },
       {
-        text: 'v0.6.1',
+        text: 'v0.6.2',
         items: [
           { text: 'Upcoming changes', link: '/getting-started/upgrading-next' },
           { text: 'Upgrading to 0.6', link: '/getting-started/upgrading-0.6' },
