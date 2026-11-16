@@ -1,6 +1,6 @@
 ---
 title: Upgrading to 0.6
-description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, framework logs through the logger and a safer scaffolded .env in 0.6.0; mail, security headers and rate limiting in 0.6.1."
+description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, framework logs through the logger and a safer scaffolded .env in 0.6.0; mail, security headers and rate limiting in 0.6.1; module-first generators, event, queue and task generators and change review in 0.6.3."
 ---
 
 # Upgrading to 0.6
@@ -9,19 +9,24 @@ description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, 
 framework messages through the logger. Most apps only need to delete a call
 or two. Read [Breaking in 0.6.0](#breaking-in-0-6-0) before upgrading.
 
-0.6.1 adds features and fixes with no breaking changes. See
-[New in 0.6.1](#new-in-0-6-1).
+0.6.1 and 0.6.3 add features and fixes with no breaking changes. See
+[New in 0.6.3](#new-in-0-6-3) and [New in 0.6.1](#new-in-0-6-1). 0.6.2 was
+tagged but never published to npm; its changes ship in 0.6.3.
 
 A `0.x` minor release can contain breaking changes; patch releases such as
 0.6.1 don't. See the [versioning policy](/reference/versioning).
 
 ```sh
-npm i @meghjs/core@^0.6.1
-npm i -D @meghjs/cli@^0.6.1
+npm i @meghjs/core@^0.6.3
+npm i -D @meghjs/cli@^0.6.3
 ```
 
-## New in 0.6.2
+## New in 0.6.3
 
+- **Generators for events, queues and scheduled tasks.** `make:event`,
+  `make:listener` (`--event` to type it), `make:queue`, `make:worker` and
+  `make:task` (`--cron`, `--interval`). See [Events](/advanced/events),
+  [Queue](/advanced/queue) and [Scheduler](/advanced/scheduler).
 - **`make:*` puts the module folder first.** `megh make:model users/user`
   now writes `src/users/models/user.model.ts`, not
   `src/models/users/user.model.ts`. The same goes for controllers, services,
@@ -47,6 +52,7 @@ npm i -D @meghjs/cli@^0.6.1
   then ask before writing. Declining puts everything back. Pass `-y` to skip
   the question; scripts and CI aren't asked. See
   [Reviewing changes](/cli/generators#reviewing-changes).
+- **A smaller Megh logo** above `megh --help`.
 
 ## New in 0.6.1
 

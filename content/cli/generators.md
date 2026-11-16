@@ -26,7 +26,7 @@ writes `src/users/domain/user.model.ts`.
 `useControllers({ auto: true })` finds controllers in every `controllers/`
 folder under `src/`, so module controllers are registered too.
 
-::: info Before 0.6.2
+::: info Before 0.6.3
 Nested names wrote `src/models/users/user.model.ts`. Files already there keep
 working: `make:resource`, `make:factory` and `sync:model` look there when
 the new location has no file.
@@ -219,7 +219,7 @@ npx megh s:m user --yes       # apply without asking
 
 It shows the changes and what they affect, and asks before writing (see
 [Reviewing changes](#reviewing-changes)). It was called `update:model` before
-0.6.2; that name (and `u:m`) still works.
+0.6.3; that name (and `u:m`) still works.
 
 For a migration such as:
 

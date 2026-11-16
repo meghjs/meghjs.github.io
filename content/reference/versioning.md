@@ -15,8 +15,8 @@ versions:
 
 ```json [package.json]
 {
-  "dependencies": { "@meghjs/core": "0.6.1" },
-  "devDependencies": { "@meghjs/cli": "0.6.1" }
+  "dependencies": { "@meghjs/core": "0.6.3" },
+  "devDependencies": { "@meghjs/cli": "0.6.3" }
 }
 ```
 
