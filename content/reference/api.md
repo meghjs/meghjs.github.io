@@ -60,6 +60,8 @@ calls chain.
 | --- | --- |
 | `useControllers(controllers: Constructor[] \| { auto: true; path?: string })` | Register controller classes, or scan a directory for them. |
 | `useCors(options: CorsOptions)` | Enable CORS through `@fastify/cors`. |
+| `useSecurityHeaders(options?: SecurityHeadersOptions)` | Send CSP, HSTS, `X-Frame-Options`, `nosniff` and other security headers on every response. Throws if called twice. See [Security](/production/security#add-security-headers). |
+| `useRateLimit(options?: RateLimitOptions)` | Limit requests per client per window (default 100 a minute per IP, in memory) and answer 429 over it. Throws if called twice. See [Security](/production/security#add-rate-limits). |
 | `useMultipart(options?: any)` | Enable multipart bodies through `@fastify/multipart`. Defaults: `attachFieldsToBody: true`, 10 MB file size limit. |
 | `useStaticFiles(options?: any)` | Serve static files through `@fastify/static`. |
 | `useOpenApi(options?: OpenApiUiOptions \| Constructor<MeghConfig<OpenApiUiOptions>>)` | Generate the OpenAPI document and serve the docs page. |
@@ -76,7 +78,7 @@ calls chain.
 | `useWorker(workers: Constructor<any>[])` | Resolve and start `@Queue` and `@MeghWorker` classes. They close on shutdown. |
 | `useMail(options?: MailConfig \| Constructor<MeghConfig<MailConfig>>)` | Configure `Mailer` over `MEGH_MAIL_*`, and start the mail queue's worker when `queue` is set. Throws when the default mailer is misconfigured. See [Mail](/advanced/mail). |
 | `useSocketIo(options?: any)` | Enable Socket.IO through `fastify-socket.io`. |
-| `useGlobal(options: GlobalOptions)` | Call several `use*` methods from one object (`cors`, `openApi`, `controllers`, `middlewares`, `authorization`, `multipart`, `staticFiles`). |
+| `useGlobal(options: GlobalOptions)` | Call several `use*` methods from one object (`cors`, `openApi`, `controllers`, `middlewares`, `authorization`, `multipart`, `staticFiles`, `securityHeaders`, `rateLimit`). |
 | `useMeghORM(options?: DatabaseOptions \| MeghConfigClass<DatabaseOptions>)` | Connect Megh ORM. Added by the built-in ORM plugin. See [ORM](/advanced/orm). |
 | `useDatabase(db: Kysely<any>)` | Deprecated. Use an existing Kysely instance as the ORM connection. Use `useMeghORM()` instead. |
 
@@ -441,6 +443,27 @@ Guide: [Authentication](/core-concept/authentication).
 | `Authorized` | decorator | `@Authorized()`, `@Authorized(name: string)` or `@Authorized({ name?, ...options })`. Require authorization on a controller or route. Extra options are passed to `authorize()`. |
 | `AuthorizeClass` | interface | `{ authorize(req: IRequest, options?: any): unknown }`. Return `false` or throw to deny with 403. |
 | `AuthorizedOptions` | type | `string \| { name?: string; [key: string]: any }`. |
+
+## Security headers and rate limiting
+
+Guide: [Security Hardening](/production/security#add-security-headers).
+
+| Export | Kind | Signature / description |
+| --- | --- | --- |
+| `SecurityHeadersOptions` | type | `{ contentSecurityPolicy?, strictTransportSecurity?, frameOptions?, referrerPolicy?, crossOriginOpenerPolicy?, crossOriginResourcePolicy?, crossOriginEmbedderPolicy?, headers? }` for `useSecurityHeaders()`. `false` leaves a header out. |
+| `ContentSecurityPolicyOptions` | type | `{ directives?: Record<string, CspDirectiveValue>; useDefaults?: boolean; reportOnly?: boolean }`. |
+| `CspDirectiveValue` | type | `string \| string[] \| boolean`. `true` is a bare directive, `false` removes it. |
+| `StrictTransportSecurityOptions` | type | `{ maxAge?: number; includeSubDomains?: boolean; preload?: boolean }`. |
+| `ReferrerPolicy` | type | A `Referrer-Policy` token, such as `"no-referrer"`. |
+| `RateLimit` | decorator | `@RateLimit(options: RouteRateLimitOptions \| false)`. A controller's or route's own limit and counter, or `false` for none. Works without `useRateLimit()`. |
+| `RateLimitOptions` | type | `{ max?, window?, key?, skip?, store?, redis?, headers?, message?, failOpen?, global? }` for `useRateLimit()`. |
+| `RouteRateLimitOptions` | type | `{ max?: number; window?: RateLimitWindow; key?: (req) => string \| Promise<string> }`. |
+| `RateLimitWindow` | type | `number \| string`. Milliseconds, or a duration such as `'30s'`, `'15m'`, `'1 hour'`. |
+| `RateLimitStore` | interface | `{ hit(key, windowMs): RateLimitHit \| Promise<RateLimitHit>; reset?(key); close?() }`. Where counts live. |
+| `RateLimitHit` | type | `{ count: number; resetAt: number }`. `resetAt` is epoch milliseconds. |
+| `MemoryRateLimitStore` | class | The default store: fixed-window counts in memory, per process. |
+| `RedisRateLimitStore` | class | `new RedisRateLimitStore(redis, { prefix? })`. Counts in Redis, shared by replicas. Takes an ioredis client, which it does not close. |
+| `RedisEvalClient` | interface | The part of an ioredis client the Redis store uses: `eval` and `del`. |
 
 ## Configuration and environment
 

@@ -215,10 +215,10 @@ app.onInit(async () => {
 });
 ```
 
-Many plugins, such as `@fastify/compress` and `@fastify/rate-limit`, attach
-themselves to each route as it is added. Megh adds routes during `run()`,
-after the `onInit` hooks, so registering and awaiting the plugin in `onInit`
-makes sure it sees every controller and inline route. See
-[Security Hardening](/production/security#add-security-headers-and-rate-limits).
+Some plugins, such as `@fastify/compress`, attach themselves to each route
+as it is added. Megh adds routes during `run()`, after the `onInit` hooks, so
+registering and awaiting the plugin in `onInit` makes sure it sees every
+controller and inline route. Security headers and rate limits are built in:
+see [Security Hardening](/production/security#add-security-headers).
 To package your own features as `use*` methods, write a
 [Megh plugin](/advanced/plugins).

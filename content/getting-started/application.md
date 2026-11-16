@@ -51,9 +51,9 @@ const app = Megh.createApplication({
 wrap, such as registering a Fastify plugin:
 
 ```ts
-import helmet from '@fastify/helmet';
+import etag from '@fastify/etag';
 
-app.app.register(helmet);
+app.app.register(etag);
 ```
 
 ## Turning features on
@@ -68,7 +68,9 @@ Each `use*` method returns the app, so they chain. Call them before `run()`.
 | `useAuthorization(Handler)` | Decides access for `@Authorized` routes | [Authentication](/core-concept/authentication) |
 | `useExceptionFilters(...)`, `useErrorHandler(fn)`, `useErrorLogger(...)` | Customise error responses and logging | [Error Handling](/core-concept/error-handling) |
 | `useOpenApi(options)` | OpenAPI document and Swagger UI or Scalar | [OpenAPI](/microservices/openapi) |
-| `useCors(options)` | CORS, through `@fastify/cors` | |
+| `useCors(options)` | CORS, through `@fastify/cors` | [Security](/production/security#restrict-cors) |
+| `useSecurityHeaders(options?)` | CSP, HSTS, `nosniff` and other security headers | [Security](/production/security#add-security-headers) |
+| `useRateLimit(options?)` | Requests per client per window, 429 over the limit | [Security](/production/security#add-rate-limits) |
 | `useMultipart(options)` | File uploads, through `@fastify/multipart` | [File Uploads](/advanced/file-uploads) |
 | `useStaticFiles(options)` | Serve files, through `@fastify/static` | [File Uploads](/advanced/file-uploads) |
 | `useCache(options)` | Memory or Redis cache | [Caching](/advanced/caching) |
