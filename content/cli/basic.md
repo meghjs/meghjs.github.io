@@ -19,7 +19,7 @@ npm i -g @meghjs/cli
 | `serve` | | Start the dev server with watch + rebuild |
 | `build` | | Compile using `tsconfig.build.json` |
 | `make:model` | `m:m` | Create a MeghORM model (columns from its migrations), or a TypeORM entity with `--orm` |
-| `update:model` | `u:m` | Sync an existing model's columns with its migrations |
+| `sync:model` | `s:m` | Sync an existing model's columns with its migrations (was `update:model`) |
 | `make:resource` | `m:r` | Create a REST resource for a model: DTOs, CRUD service and controller |
 | `make:controller` | `m:c` | Create a controller |
 | `make:service` | `m:s` | Create a service |
@@ -48,7 +48,7 @@ Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
 | Page | Commands |
 |---|---|
-| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `update:model`, `make:middleware`, `make:config`, `make:mail` |
+| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `sync:model`, `make:middleware`, `make:config`, `make:mail` |
 | [Database Commands](/cli/database) | `make:migration`, `migrate*`, `make:seeder`, `db:seed`, `make:factory` |
 | [Scaffold](/cli/scaffold/) | `--template`, `--fields`, `scaffold:domain`, `scaffold:auth`, `scaffold:rbac`, `template:list` |
 

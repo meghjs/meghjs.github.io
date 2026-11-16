@@ -28,9 +28,43 @@ folder under `src/`, so module controllers are registered too.
 
 ::: info Before 0.6.2
 Nested names wrote `src/models/users/user.model.ts`. Files already there keep
-working: `make:resource`, `make:factory` and `update:model` look there when
+working: `make:resource`, `make:factory` and `sync:model` look there when
 the new location has no file.
 :::
+
+## Reviewing changes
+
+A generator that would change a file that already exists (with `-f`, or
+`sync:model`) shows what it is about to do and asks first:
+
+```txt
+Changes
+  ~ changed  src/blog/models/post.model.ts
+
+src/blog/models/post.model.ts
+      title!: string;
+
+  -   @Column({ nullable: true, type: "text" })
+  -   body!: string | null;
+
+      @Column()
+  Can affect:
+    src/blog/services/post.service.ts imports it
+      line 5 uses .body, which is removed
+
+? Apply these changes to 1 existing file? (y/N)
+```
+
+- **Changes** lists new files (`+ new`) and changed ones (`~ changed`), with a
+  diff of each changed file.
+- **Can affect** lists the files that import a changed file, and the lines
+  that use a property or method the change removes or retypes.
+- Answering no puts everything back, including the new files the command
+  made along the way.
+
+A command that only creates new files doesn't ask. `-y` / `--yes` applies
+without asking; so does running outside a terminal (scripts and CI), which
+still prints the review.
 
 ## Resource
 
@@ -171,16 +205,21 @@ npx megh make:model Product --template ecommerce/product
 npx megh make:resource Ticket --fields "title,body,status:in(open|closed),user_id:cascade"
 ```
 
-### Updating a model
+### Syncing a model
 
 After a migration alters the table, bring the model up to date without
 regenerating it:
 
 ```sh
-npx megh update:model user
-npx megh u:m user --dry-run   # show the changes, write nothing
-npx megh u:m user --dto       # also rewrite src/dtos/user.dto.ts
+npx megh sync:model user
+npx megh s:m user --dry-run   # show the review, write nothing
+npx megh s:m user --dto       # also rewrite src/dtos/user.dto.ts
+npx megh s:m user --yes       # apply without asking
 ```
+
+It shows the changes and what they affect, and asks before writing (see
+[Reviewing changes](#reviewing-changes)). It was called `update:model` before
+0.6.2; that name (and `u:m`) still works.
 
 For a migration such as:
 
@@ -191,7 +230,7 @@ await schema.table("users", (table) => {
 });
 ```
 
-`update:model` adds `@Column({ nullable: true, type: "string" }) phone!: string | null;` after the
+`sync:model` adds `@Column({ nullable: true, type: "string" }) phone!: string | null;` after the
 model's existing columns, removes the `age` field (with its doc comment), and
 rewrites any field still in the shape `make:model` writes when its type or
 nullability changed. Only column fields are touched: relations, methods,

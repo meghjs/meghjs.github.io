@@ -61,7 +61,7 @@ npm run start:dev
 3. **Existing work is kept.** A table some migration already creates keeps
    that migration, and the template's columns are not applied to it. An
    existing model is reused. To change a table, write an alter-table
-   migration and run [`update:model`](/cli/generators#updating-a-model).
+   migration and run [`sync:model`](/cli/generators#syncing-a-model).
 
 Then create the tables:
 

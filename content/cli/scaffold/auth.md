@@ -156,7 +156,7 @@ If a migration already creates `users`, it is kept. An alter-table migration
 adds the columns sign-in needs and the table lacks (`email`, `password`, and
 `role_id` for a single role), as nullable columns since the table may have
 rows. The `User` model is updated with
-[`update:model`](/cli/generators#updating-a-model), and the generated code only
+[`sync:model`](/cli/generators#syncing-a-model), and the generated code only
 uses columns the table has.
 
 ## Running It Again

@@ -26,7 +26,7 @@ npm i -D @meghjs/cli@^0.6.1
   now writes `src/users/models/user.model.ts`, not
   `src/models/users/user.model.ts`. The same goes for controllers, services,
   DTOs, middleware, config and mail. Existing files stay where they are, and
-  `make:resource`, `make:factory` and `update:model` still find models in
+  `make:resource`, `make:factory` and `sync:model` still find models in
   the old place. See [Folders](/cli/generators#folders).
 - **Auto-discovered controllers.** `useControllers({ auto: true })` without
   a `path` now scans every `controllers/` folder under `src/`, so module
@@ -36,8 +36,17 @@ npm i -D @meghjs/cli@^0.6.1
   `--features` prints how to add them. Existing projects are not affected.
   See [Mail: Setting it up](/advanced/mail#setting-it-up).
 - **Generated models put each decorator on its own line**, with a blank
-  line between columns. `update:model` still reads models in the one-line
+  line between columns. `sync:model` still reads models in the one-line
   style, and keeps hand-written fields as they are.
+
+- **`update:model` is now `sync:model`** (alias `s:m`). The old name and
+  `u:m` still work.
+- **Generators review changes to existing files.** `sync:model` and any
+  `make:*` run with `-f` show a diff of each file they would change, the
+  files that import it and the lines that use removed or retyped members,
+  then ask before writing. Declining puts everything back. Pass `-y` to skip
+  the question; scripts and CI aren't asked. See
+  [Reviewing changes](/cli/generators#reviewing-changes).
 
 ## New in 0.6.1
 
