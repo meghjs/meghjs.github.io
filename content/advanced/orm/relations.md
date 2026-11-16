@@ -10,18 +10,28 @@ Relations connect models. Declare them with decorators, then load them with `wit
 ```ts
 @Table()
 class User extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
 
-  @HasMany(() => Post) posts?: Post[];                // posts.user_id → users.id
-  @HasOne(() => Profile) profile?: Profile | null;    // profiles.user_id → users.id
+  @HasMany(() => Post)
+  posts?: Post[]; // posts.user_id → users.id
+
+  @HasOne(() => Profile)
+  profile?: Profile | null; // profiles.user_id → users.id
 }
 
 @Table()
 class Post extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() user_id!: number;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
 
-  @BelongsTo(() => User, { foreignKey: 'user_id' }) author?: User | null;
+  @Column()
+  user_id!: number;
+
+  @BelongsTo(() => User, { foreignKey: 'user_id' })
+  author?: User | null;
 }
 ```
 
@@ -126,7 +136,9 @@ const profile = await user.related('profile').get(); // Profile | null
 ```ts
 @Table()
 class User extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
 
   @BelongsToMany(() => Role, { pivotColumns: ['granted_by'] })
   roles?: BelongsToMany<Role, { granted_by: string | null }>;

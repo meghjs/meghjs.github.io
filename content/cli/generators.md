@@ -134,12 +134,24 @@ columns are taken into account:
 // Columns read from the migrations (the table is created in 20260101000000_create_users_table.ts).
 @Table("users")
 export class User extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() email!: string;
-  @Column({ nullable: true, type: "string" }) name!: string | null;
-  @Column({ type: "boolean" }) is_admin?: boolean;
-  @CreatedAt() created_at?: Date;
-  @UpdatedAt() updated_at?: Date;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @Column()
+  email!: string;
+
+  @Column({ nullable: true, type: "string" })
+  name!: string | null;
+
+  @Column({ type: "boolean" })
+  is_admin?: boolean;
+
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
 }
 ```
 

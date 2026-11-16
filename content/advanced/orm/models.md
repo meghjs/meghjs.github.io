@@ -20,14 +20,27 @@ import { Post } from './post.model';
 
 @Table('users')
 export class User extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column({ unique: true }) email!: string;
-  @Column({ nullable: true }) name!: string | null;
-  @Column() active!: boolean;
-  @CreatedAt() created_at?: Date;
-  @UpdatedAt() updated_at?: Date;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
 
-  @HasMany(() => Post) posts?: Post[];
+  @Column({ unique: true })
+  email!: string;
+
+  @Column({ nullable: true })
+  name!: string | null;
+
+  @Column()
+  active!: boolean;
+
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
+
+  @HasMany(() => Post)
+  posts?: Post[];
 
   get displayName() {
     return this.name ?? this.email;
@@ -81,14 +94,21 @@ Decorated columns are inherited, so shared columns can live in a base class:
 
 ```ts
 export abstract class BaseModel extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @CreatedAt() created_at?: Date;
-  @UpdatedAt() updated_at?: Date;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
 }
 
 @Table()
 export class Tag extends BaseModel {
-  @Column() name!: string;
+  @Column()
+  name!: string;
 }
 ```
 
@@ -102,10 +122,18 @@ app.useMeghORM({ naming: 'snake_case' });
 
 @Table()
 class Post extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() authorId!: number;        // author_id
-  @Column() publishedAt!: Date | null; // published_at
-  @CreatedAt() createdAt?: Date;      // created_at
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @Column()
+  authorId!: number; // author_id
+
+  @Column()
+  publishedAt!: Date | null; // published_at
+
+  @CreatedAt()
+  createdAt?: Date; // created_at
 }
 ```
 
@@ -114,9 +142,15 @@ Or name a column explicitly, which works with either strategy:
 ```ts
 @Table('legacy_customers')
 class Customer extends Model {
-  @PrimaryKey({ name: 'customer_no' }) @AutoIncrement() id?: number;
-  @Column({ name: 'e_mail' }) email!: string;
-  @CreatedAt({ name: 'created_on' }) createdAt?: Date;
+  @PrimaryKey({ name: 'customer_no' })
+  @AutoIncrement()
+  id?: number;
+
+  @Column({ name: 'e_mail' })
+  email!: string;
+
+  @CreatedAt({ name: 'created_on' })
+  createdAt?: Date;
 }
 ```
 
@@ -144,10 +178,18 @@ settings, so the two styles can be mixed while you migrate.
 ```ts
 @Table()
 class Post extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() title!: string;
-  @CreatedAt() created_at?: Date;
-  @UpdatedAt() updated_at?: Date;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @Column()
+  title!: string;
+
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
 }
 ```
 
@@ -161,8 +203,12 @@ the fields after your columns.
 ```ts
 @Table()
 class Post extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @DeletedAt() deleted_at?: Date | null;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @DeletedAt()
+  deleted_at?: Date | null;
 }
 ```
 
@@ -192,11 +238,21 @@ column's `type` picks its cast (`boolean`, `json`, `date`, `datetime` and
 ```ts
 @Table()
 class Member extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() is_admin!: boolean;                                  // boolean, from the TypeScript type
-  @Column({ type: 'json', nullable: true }) settings!: { theme: string } | null;
-  @Column({ type: 'date', nullable: true }) born_on!: Date | null;
-  @Column({ type: 'decimal', cast: 'number' }) balance!: number;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @Column()
+  is_admin!: boolean; // boolean, from the TypeScript type
+
+  @Column({ type: 'json', nullable: true })
+  settings!: { theme: string } | null;
+
+  @Column({ type: 'date', nullable: true })
+  born_on!: Date | null;
+
+  @Column({ type: 'decimal', cast: 'number' })
+  balance!: number;
 }
 ```
 

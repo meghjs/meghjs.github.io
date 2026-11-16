@@ -270,11 +270,21 @@ import { Model, Table, PrimaryKey, AutoIncrement, Column, CreatedAt, UpdatedAt }
 
 @Table('users')
 export class User extends Model {
-  @PrimaryKey() @AutoIncrement() id?: number;
-  @Column() name!: string;
-  @Column({ unique: true }) email!: string;
-  @CreatedAt() created_at?: Date;
-  @UpdatedAt() updated_at?: Date;
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
+
+  @Column()
+  name!: string;
+
+  @Column({ unique: true })
+  email!: string;
+
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
 }
 ```
 :::
