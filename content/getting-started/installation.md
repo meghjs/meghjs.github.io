@@ -30,8 +30,7 @@ yarn dlx @meghjs/cli new myapi
 :::
 
 The CLI asks which package manager to use and which features to include —
-OpenAPI docs, CORS, MeghORM and Scalar UI (TypeORM and Knex are also
-offered) — then scaffolds the project and
+OpenAPI docs, CORS and MeghORM — then scaffolds the project and
 installs its dependencies.
 
 ```sh

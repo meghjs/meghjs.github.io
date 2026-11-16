@@ -47,8 +47,7 @@ app.useMail({ from: 'Shop <shop@example.com>' });
 app.useMail(MailSettings); // @AppConfig class MailSettings extends MeghConfig<MailConfig>
 ```
 
-`megh new --features mail` sets all of this up for you. See
-[Scaffolding](#scaffolding).
+[Setting it up](#setting-it-up) lists the steps for a new project.
 
 ### Which mailer is used
 
@@ -372,10 +371,13 @@ you expected it sent, or the reverse:
 Expected WelcomeMail to be sent, but it was not. Nothing was sent. It was queued instead; use assertQueued().
 ```
 
-## Scaffolding
+## Setting it up
 
-`megh new --features mail` (also offered in the interactive prompt) adds
-`nodemailer`, `app.useMail()`, a `WelcomeMail`, and this section to `.env`:
+1. Install the SMTP transport: `npm i nodemailer`. The API mailers don't need
+   it.
+2. Call `app.useMail()` in `src/app.ts`.
+3. Generate a mailable: `npx megh make:mail Welcome`.
+4. Add the mail settings to `.env`:
 
 ```ini [.env]
 # Mail: app.useMail(). With no MEGH_MAIL_MAILER, mail goes to the log in

@@ -20,6 +20,22 @@ npm i @meghjs/core@^0.6.1
 npm i -D @meghjs/cli@^0.6.1
 ```
 
+## New in 0.6.2
+
+- **`make:*` puts the module folder first.** `megh make:model users/user`
+  now writes `src/users/models/user.model.ts`, not
+  `src/models/users/user.model.ts`. The same goes for controllers, services,
+  DTOs, middleware, config and mail. Existing files stay where they are, and
+  `make:resource`, `make:factory` and `update:model` still find models in
+  the old place. See [Folders](/cli/generators#folders).
+- **Auto-discovered controllers.** `useControllers({ auto: true })` without
+  a `path` now scans every `controllers/` folder under `src/`, so module
+  controllers are found. With a `path`, nothing changes.
+- **`megh new` offers OpenAPI, CORS and MeghORM only.** Mail, Scalar UI,
+  TypeORM and Knex are no longer set up by `megh new`; asking for them with
+  `--features` prints how to add them. Existing projects are not affected.
+  See [Mail: Setting it up](/advanced/mail#setting-it-up).
+
 ## New in 0.6.1
 
 No code changes needed. Everything here is opt-in.

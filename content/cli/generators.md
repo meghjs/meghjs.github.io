@@ -7,6 +7,31 @@ description: Generating resources, controllers, services, models, middleware and
 
 The `make:*` commands write new files from templates. Models are read from your migrations, and `make:resource` writes a complete REST API for a model. Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
+## Folders
+
+A plain name goes in the folder for its type. A name with a folder in front
+is a module: the module folder comes first, then the type folder.
+
+| Command | Writes |
+|---|---|
+| `make:model user` | `src/models/user.model.ts` |
+| `make:model users/user` | `src/users/models/user.model.ts` |
+| `make:controller users/user` | `src/users/controllers/user.controller.ts` |
+| `make:service users/user` | `src/users/services/user.service.ts` |
+| `make:resource users/user` | `src/users/{models,dtos,services,controllers}/user.*.ts` |
+
+`--root <dir>` replaces the type folder: `make:model users/user --root domain`
+writes `src/users/domain/user.model.ts`.
+
+`useControllers({ auto: true })` finds controllers in every `controllers/`
+folder under `src/`, so module controllers are registered too.
+
+::: info Before 0.6.2
+Nested names wrote `src/models/users/user.model.ts`. Files already there keep
+working: `make:resource`, `make:factory` and `update:model` look there when
+the new location has no file.
+:::
+
 ## Resource
 
 ```sh
@@ -33,7 +58,8 @@ If there is neither a model nor a migration for the table, nothing is
 written; create the migration first (`megh make:migration create_users_table`).
 Use `--table <name>` when the table name isn't the plural snake_case name, and
 `-f` to overwrite existing DTO, service and controller files. Nested names
-work too: `megh m:r admin/user` serves `/admin/users`.
+work too: `megh m:r admin/user` writes to `src/admin/` and serves
+`/admin/users`. See [Folders](#folders).
 
 If the model is a [TypeORM](/advanced/database) entity instead, the service
 uses its repository and no DTOs are generated.
@@ -194,7 +220,7 @@ npx megh make:mail OrderShipped
 
 Generates a `Mailable` in `src/mail`, with `envelope()`, `content()` and
 `attachments()` to fill in. The `Mail` suffix is added for you, and a name like
-`admin/Invoice` writes to `src/mail/admin/invoice.mail.ts`:
+`admin/Invoice` writes to `src/admin/mail/invoice.mail.ts`:
 
 ```ts [src/mail/order-shipped.mail.ts]
 import { Mailable } from '@meghjs/core';

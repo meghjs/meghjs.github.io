@@ -129,7 +129,8 @@ check that it doesn't return `false` (that is a 403 too) and that
 
 ### Auto-discovered controllers aren't found
 
-`useControllers({ auto: true })` scans `src/controllers`, but only the
+`useControllers({ auto: true })` scans every `controllers/` folder under
+`src/` (`src/controllers/`, `src/users/controllers/`), but only the
 compiled files: outside ts-node it swaps the leading `src` for `dist` and
 loads `.js` files from there. Paths are relative to the current working
 directory. Routes go missing when:
