@@ -75,12 +75,16 @@ The scan works like controller auto-discovery:
   are skipped.
 - Every exported class marked with `@ScheduledTask()` is registered. Other
   exports are ignored.
-- In a compiled app, a leading `src` is swapped for `dist` and `.js` files are
-  loaded. Under ts-node, the `.ts` files in `src` are loaded. An absolute path
-  is used as-is.
-- A missing folder logs a warning and the app starts without those tasks.
+- In a compiled app, the tsconfig `rootDir` (default `src`) is swapped for its
+  `outDir` (default `dist`) and `.js` files are loaded. When TypeScript runs
+  directly (ts-node, tsx), the `.ts` files in `src` are loaded. An absolute
+  path is used as-is.
+- `useScheduler({})` and `useScheduler()` scan `src/tasks`.
+- A missing folder logs a warning and the app starts without those tasks. A
+  file that fails to import stops startup.
 
 A class registered in the list and found by the scan runs once, not twice.
+Two different classes with the same name, in different files, both run.
 
 ## Decorators
 
@@ -113,6 +117,15 @@ All three decorators take:
 |--------|---------|-------------|
 | `timezone` | server time | IANA zone, such as `'Asia/Dhaka'` or `'Europe/London'` |
 | `runOnInit` | `false` | Also run once when the scheduler starts |
+
+The option types are exported as `BaseJobOptions` and `CronOptions`, so you
+can build options outside the decorator:
+
+```ts
+import type { CronOptions } from '@meghjs/core';
+
+const nightly: CronOptions = { timezone: 'Europe/London', name: 'nightly' };
+```
 
 `disabled` is handy for feature flags:
 
@@ -156,8 +169,11 @@ This means:
 - `@Timeout(0)` and `runOnInit` jobs can run before the server accepts
   requests and before `onReady`.
 - Nothing runs if you never call `run()`, for example in tests.
-- `close()` does not wait for a job that is in the middle of running. Make
-  long jobs safe to interrupt.
+- `close()` stops new runs and waits for a job that is in the middle of
+  running. On SIGTERM/SIGINT that wait counts toward `shutdownTimeout`, so
+  very long jobs can still be cut off.
+- If startup fails after the tasks started (an error in `app.ready()`, the
+  port already in use), they are stopped before `run()` rejects.
 
 An invalid cron expression throws when the scheduler starts, so `run()` fails
 with `Invalid cron expression "..." on ReportTask#sendDailyReport`.
@@ -218,8 +234,8 @@ const scheduler = new MeghScheduler();
 scheduler.addTaskClasses([ReportTask, CleanupTask]);
 scheduler.start();
 
-const stop = () => {
-  scheduler.stopAll();
+const stop = async () => {
+  await scheduler.stopAll(); // waits for runs in progress
   process.exit(0);
 };
 process.once('SIGTERM', stop);
@@ -230,7 +246,7 @@ process.once('SIGINT', stop);
 |--------|-------------|
 | `addTaskClasses(classes)` | Add task classes. Adding the same class again is ignored |
 | `start()` | Build each class and start its jobs. Call it once |
-| `stopAll()` | Stop every job |
+| `stopAll()` | Stop every job. Returns a promise that resolves when runs in progress finish |
 
 Outside `app.run()` there are no lifecycle hooks, so anything the tasks need,
 such as a database connection, must be set up before `start()`. A class

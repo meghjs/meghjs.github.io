@@ -62,7 +62,7 @@ Each `use*` method returns the app, so they chain. Call them before `run()`.
 
 | Method | What it does | Guide |
 |--------|--------------|-------|
-| `useControllers([...])` or `useControllers({ auto: true, path? })` | Register controllers, or scan a folder (default: every `controllers/` folder under `src/`) | [Controllers](/core-concept/controller) |
+| `useControllers([...])` or `useControllers({ auto: true, path? })` | Register controllers, or scan a folder (default: every `controllers/` folder under `src/`). Calling it again adds to the list | [Controllers](/core-concept/controller) |
 | `useMiddlewares([...])` | Global middleware for every route | [Middleware](/core-concept/middleware) |
 | `useAuthentication(Handler)` | Sets `request.user` on every request | [Authentication](/core-concept/authentication) |
 | `useAuthorization(Handler)` | Decides access for `@Authorized` routes | [Authentication](/core-concept/authentication) |

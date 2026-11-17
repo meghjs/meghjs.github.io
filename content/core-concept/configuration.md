@@ -38,12 +38,9 @@ MEGH_DOTENV=false node dist/serve.js
 It is checked before `.env` is read, so set it in the real environment, not in
 `.env`.
 
-::: warning
-`MEGH_DOTENV=false` only skips the `process.env` load. `Environment` still
-reads `.env` from the working directory if one exists, so `env.get()` can
-return values that `process.env` doesn't have. Don't ship a `.env` file if you
-rely on it not being read.
-:::
+With `MEGH_DOTENV=false`, `Environment` doesn't read `.env` either: `get()`,
+`getOrThrow()` and `getAll()` only see `process.env`. It is checked on every
+read.
 
 ## `Environment`
 
@@ -65,7 +62,7 @@ export class MailerService {
 | Method | Returns |
 |--------|---------|
 | `get<T>(key)` | The value, or `undefined` when it isn't set |
-| `getOrThrow<T>(key)` | The value. Throws `"<KEY> not found in environment variables."` when it isn't set |
+| `getOrThrow<T>(key)` | The value. Throws `EnvironmentVariableNotFound` (`"<KEY> not found in environment variables."`, with the name in `error.key`) when it isn't set |
 | `getAll<T>()` | Every variable, `.env` merged with `process.env` |
 | `Environment.reload()` | Static. Forget the cached `.env` so the next read loads it again |
 
@@ -86,8 +83,7 @@ every call, so changes to it at runtime show up straight away. Edits to the
 `.env` file do not, until you call `Environment.reload()` or restart.
 
 If `.env` exists but can't be read, the error is logged and `Environment`
-returns no values at all, including those from `process.env`, until
-`Environment.reload()`.
+returns only the `process.env` values until `Environment.reload()`.
 
 ### Outside classes
 
@@ -159,17 +155,15 @@ export class MailerService {
 }
 ```
 
-`config()` runs on every `GetConfig` call. The result is not cached, so read it
-once into a field rather than in a hot path.
+`config()` runs on the first `GetConfig` call and the result is cached, so
+later calls return the same object. `Environment.reload()` clears the cache,
+and the next `GetConfig` call runs `config()` again.
 
 If the class isn't registered, `GetConfig` throws
 `Config class "MailConfig" is not registered. Did you forget to apply the @AppConfig decorator?`.
 
-::: warning
-That same message is shown when `config()` itself throws, for example from
-`getOrThrow`. If you see it on a class that does have `@AppConfig`, check that
-the variables it reads are set.
-:::
+An error thrown inside `config()`, for example `EnvironmentVariableNotFound`
+from `getOrThrow`, reaches you as it is.
 
 ### Reading a token
 
@@ -211,11 +205,12 @@ extend it. The config is read once, when the method is called.
 | API | Use |
 |-----|-----|
 | `Environment` | Injectable service: `get`, `getOrThrow`, `getAll`, `Environment.reload()` |
+| `EnvironmentVariableNotFound` | Error thrown by `getOrThrow()`; check it with `instanceof` |
 | `MeghConfig<T>` | Base class for config classes. Implement `config(env): T` |
 | `@AppConfig` | Registers a config class for injection |
 | `GetConfig(ConfigClass)` | Builds and returns the typed settings |
 | `GetConfig(token)` | Returns the value registered for a token or string |
-| `MEGH_DOTENV=false` | Don't load `.env` into `process.env` |
+| `MEGH_DOTENV=false` | Don't read `.env` at all: only `process.env` is used |
 
 See also [Application](/getting-started/application) for `NODE_ENV`, `HOST`
 and other variables the app reads, and
