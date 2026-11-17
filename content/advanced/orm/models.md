@@ -285,6 +285,7 @@ SQLite drivers can only bind numbers, strings and buffers, so on SQLite
 
 ## Generating models
 
-`npx megh make:model user` writes `src/models/user.model.ts`, with its
+`npx megh make:model user --orm` writes `src/models/user.model.ts`, with its
 columns read from the migrations that create and change the `users` table.
+(Without `--orm`, `make:model` writes a plain class.)
 See [CLI: Model](/cli/generators#model).

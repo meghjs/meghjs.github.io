@@ -113,7 +113,7 @@ export class User {
 Generate one with the CLI:
 
 ```sh
-npx megh make:model user --orm
+npx megh make:model user --typeorm
 ```
 
 ### Injecting a repository

@@ -1,11 +1,11 @@
 ---
 title: Generators
-description: Generating resources, controllers, services, models, middleware and config classes with the Megh CLI.
+description: Generating resources, controllers, services, models, classes, middleware, config classes and their unit tests with the Megh CLI.
 ---
 
 # Generators
 
-The `make:*` commands write new files from templates. Models are read from your migrations, and `make:resource` writes a complete REST API for a model. Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
+The `make:*` commands write new files from templates. Models are read from your migrations, and `make:resource` writes a complete REST API for a model. Most generators also write a unit test next to the file (see [Tests](#tests)). Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
 ## Folders
 
@@ -82,6 +82,8 @@ Generates a complete REST resource for a [Megh ORM](/advanced/orm) model:
 | `src/dtos/user.dto.ts` | `CreateUserDto`, `UpdateUserDto` (every field optional) and `ListUsersQuery` (`page`, `perPage`) |
 | `src/services/user.service.ts` | `findAll`, `paginate`, `find`, `findOrFail`, `create`, `update`, `delete` |
 | `src/controllers/user.controller.ts` | `GET /users`, `GET /users/:id`, `POST /users`, `PUT /users/:id`, `DELETE /users/:id` |
+| `src/services/user.service.spec.ts` | A test for each service method, with the model's queries replaced by spies |
+| `src/controllers/user.controller.spec.ts` | A test for each route, with a stand-in service |
 
 The DTO validators come from the model's fields and the migration's column
 types: `varchar(255)` gets `@MaxLength(255)`, an `email` column `@IsEmail()`,
@@ -96,7 +98,9 @@ work too: `megh m:r admin/user` writes to `src/admin/` and serves
 `/admin/users`. See [Folders](#folders).
 
 If the model is a [TypeORM](/advanced/database) entity instead, the service
-uses its repository and no DTOs are generated.
+uses its repository and no DTOs are generated. A model that is a plain class
+(`make:model` without `--orm`) has no table, so the command stops and says to
+regenerate it with `make:model user --orm --force`.
 
 Register the controller in your app:
 
@@ -121,7 +125,8 @@ npx megh m:c user -m user -r
 With `-m`, the controller is generated like [`make:resource`](#resource): the model's
 DTOs, service and model (from its migration) are created if missing, and the
 controller delegates to the service, which queries the [MeghORM](/advanced/orm)
-model. To use a [TypeORM](/advanced/database) repository instead, add `--orm`.
+model (`--orm` says so explicitly). To use a [TypeORM](/advanced/database)
+repository instead, add `--typeorm`.
 
 Use `-rt <dir>` to place the file under a different directory, and `--base-path`
 to emit `@ApiController` without a route prefix.
@@ -139,24 +144,50 @@ migration if it doesn't exist yet):
 npx megh make:service user -m user -r
 ```
 
-To use a [TypeORM](/advanced/database) repository instead, add `--orm`:
+To use a [TypeORM](/advanced/database) repository instead, add `--typeorm`:
 
 ```sh
-npx megh make:service user -m user -r --orm
+npx megh make:service user -m user -r --typeorm
 ```
 
 ## Model
 
 ```sh
-# Megh ORM model
+# Plain class
 npx megh make:model user
-npx megh make:model user --table app_users   # table name other than "users"
+
+# Megh ORM model
+npx megh make:model user --orm
+npx megh make:model user --orm --table app_users   # table name other than "users"
 
 # TypeORM entity (with @meghjs/data)
-npx megh m:m user --orm
+npx megh m:m user --typeorm
 ```
 
-`make:model` writes a [Megh ORM](/advanced/orm) model. It looks for the
+Without a flag, `make:model` writes a plain class, not mapped to a table:
+
+```ts [src/models/user.model.ts]
+export class User {
+  // Add the fields a User has, e.g.
+  // id!: number;
+  // name!: string;
+
+  constructor(values: Partial<User> = {}) {
+    Object.assign(this, values);
+  }
+}
+```
+
+If a migration already creates the table, the command says so and suggests
+`--orm`.
+
+::: warning Before this release
+`make:model user` wrote a Megh ORM model, and `--orm` made a TypeORM entity.
+Now `--orm` means Megh ORM and `--typeorm` means TypeORM, on `make:model`,
+`make:controller` and `make:service`.
+:::
+
+With `--orm`, `make:model` writes a [Megh ORM](/advanced/orm) model. It looks for the
 model's table (by default the plural snake_case name: `User` → `users`,
 `BlogPost` → `blog_posts`) in your migrations. If one creates it, the model
 gets a decorated field for every column, with its type, nullability and
@@ -197,7 +228,8 @@ document the model. If no migration creates
 the table, you get a model with an `id` and commented examples to fill in. The migrations are read, not run, so no database is needed.
 Relations aren't generated; add them yourself.
 
-To write the migration too, start from a template or a list of fields; see
+To write the migration too, start from a template or a list of fields (these
+always build a Megh ORM model, so `--orm` isn't needed); see
 [Templates and Fields](/cli/scaffold/templates):
 
 ```sh
@@ -239,7 +271,7 @@ mapping, a custom cast, extra options) is kept as written and reported so you
 can check it. A renamed column shows up as one field removed and one added.
 
 The model must be a decorated (`@Table`) model; for an older model with
-`static table` and `static casts`, regenerate it with `make:model --force`.
+`static table` and `static casts`, regenerate it with `make:model --orm --force`.
 Without `--dto`, a DTO from `make:resource` is not changed, and the command
 reminds you it may be out of date.
 
@@ -419,3 +451,122 @@ export class JwtConfig extends MeghConfig {
   }
 }
 ```
+
+## DTO
+
+```sh
+npx megh make:dto CreatePost
+```
+
+Writes `src/dtos/create-post.dto.ts`: a `CreatePostDto` with class-validator
+rules for a `name` and an optional `description`, to replace with your fields.
+Its test checks that a valid body passes and that `name` is required.
+
+## Class
+
+```sh
+npx megh make:class Money
+# shorthand
+npx megh m:cls billing/Money
+```
+
+Writes a plain class (no decorators, nothing to register) in
+`src/classes/money.ts`, or `src/billing/classes/money.ts` for the nested
+name, with a test that creates it. `--root <dir>` picks another folder, e.g.
+`make:class Money --root utils` writes `src/utils/money.ts`.
+
+## Tests
+
+Every generator except `make:model` and the database ones (`make:migration`,
+`make:seeder`, `make:factory`) writes a [Vitest](/advanced/testing) unit test
+next to the file it creates. The app's `vitest.config.mts` runs every
+`src/**/*.spec.ts`, so `npm test` picks them up:
+
+| Command | Also writes |
+|---|---|
+| `make:service user` | `src/services/user.service.spec.ts` |
+| `make:resource user` | `src/services/user.service.spec.ts`, `src/controllers/user.controller.spec.ts` |
+| `make:controller user -m user` | `src/controllers/user.controller.spec.ts` (and the service's, when it creates the service) |
+| `make:class Money` | `src/classes/money.spec.ts` |
+
+Each test matches what was generated:
+
+- **Resource services** (`make:resource`, `make:service -m`) get a test for
+  every method: `findAll`, `paginate`, `find`, `findOrFail`, `create`,
+  `update` (it checks that fields sent as `undefined` are skipped) and
+  `delete`, including the 404 cases. The model's queries are replaced with
+  `vi.spyOn`, so no database is needed. `create` and `update` use sample values
+  for the model's columns (`email` gets `user@example.com`, a boolean `true`).
+  With `--typeorm`, the repository is a stand-in.
+- **Resource controllers** get a test for every route, with a stand-in
+  service passed to `MeghTest.getController`.
+- **Other files** (a basic service or controller, config, middleware, mail,
+  event, listener, queue, worker, task, DTO, class) get a test of what the
+  template does. Replace it as you write the real code.
+
+```ts [src/services/user.service.spec.ts]
+describe('delete', () => {
+  it('deletes the user', async () => {
+    const existing = row();
+    vi.spyOn(User, 'findOrFail').mockResolvedValue(existing as never);
+    const remove = vi.spyOn(existing, 'delete').mockResolvedValue();
+
+    await service.delete(1);
+    expect(remove).toHaveBeenCalled();
+  });
+});
+```
+
+Skip the test with `--notest` (or `-nt`):
+
+```sh
+npx megh make:service user -nt
+npx megh make:resource user --notest
+npx megh scaffold:domain ecommerce --resource --notest
+```
+
+Running a generator again with `-f` keeps an existing test, unless it is
+overwritten too (the review shows it first).
+
+### make:test
+
+`make:test` writes the test for a file that already exists, next to it:
+
+```sh
+npx megh make:test user.service        # src/services/user.service.spec.ts
+npx megh make:test UserController      # src/controllers/user.controller.spec.ts
+npx megh make:test user --type service # the same as user.service
+npx megh m:t price-calculator          # finds src/**/price-calculator.ts
+npx megh m:t checkout                  # nothing matches: src/tests/checkout.spec.ts
+```
+
+The kind comes from the name (`user.service`, `UserService`) or `--type`
+(`service`, `controller`, `config`, `middleware`, `mail`, `event`, `listener`,
+`queue`, `worker`, `task`, `dto`, `model` or `class`). Without one, it looks
+for a file of that name anywhere under `src/`, and asks you to be more specific
+when several match.
+
+A resource service or controller is recognised and gets the full tests above.
+Any other class gets a test that creates it (through the container for
+services, controllers, middleware and the like) and a `it.todo()` for each of
+its public methods:
+
+```ts [src/utils/price-calculator.spec.ts]
+import { describe, expect, it } from 'vitest';
+import { PriceCalculator } from './price-calculator';
+
+describe('PriceCalculator', () => {
+  const priceCalculator = new PriceCalculator();
+
+  it('should be defined', () => {
+    expect(priceCalculator).toBeDefined();
+  });
+
+  it.todo('total()');
+
+  it.todo('refresh()');
+});
+```
+
+A name that matches no file gets a starter spec in `src/tests/`. An existing
+spec is not replaced without `-f`.

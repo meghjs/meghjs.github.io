@@ -38,6 +38,13 @@ export default defineConfig({
 `megh new` generates this file, plus `vitest.e2e.config.mts` for
 `test/**/*.e2e-spec.ts`.
 
+::: tip Generated tests
+`megh make:service`, `make:controller`, `make:resource` and the other
+generators write a `.spec.ts` next to the file they create, and
+`megh make:test <name>` writes one for a file you already have. See
+[CLI: Tests](/cli/generators#tests).
+:::
+
 ## Unit tests
 
 `MeghTest.getController` and `MeghTest.getProvider` resolve a class through

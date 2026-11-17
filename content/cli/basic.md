@@ -18,7 +18,7 @@ npm i -g @meghjs/cli
 | `new` | | Create a new application |
 | `serve` | | Start the dev server with watch + rebuild |
 | `build` | | Compile using `tsconfig.build.json` |
-| `make:model` | `m:m` | Create a MeghORM model (columns from its migrations), or a TypeORM entity with `--orm` |
+| `make:model` | `m:m` | Create a model: a plain class, a MeghORM model with `--orm` (columns from its migrations), or a TypeORM entity with `--typeorm` |
 | `sync:model` | `s:m` | Sync an existing model's columns with its migrations (was `update:model`) |
 | `make:resource` | `m:r` | Create a REST resource for a model: DTOs, CRUD service and controller |
 | `make:controller` | `m:c` | Create a controller |
@@ -31,6 +31,9 @@ npm i -g @meghjs/cli
 | `make:queue` | `m:q` | Create a queue with a job handler in `src/queues/` |
 | `make:worker` | `m:w` | Create a worker for a queue in `src/workers/` |
 | `make:task` | `m:task`, `make:scheduler` | Create a scheduled task in `src/tasks/` (`--cron`, `--interval`) |
+| `make:dto` | `m:dto` | Create a class-validator DTO in `src/dtos/` |
+| `make:class` | `m:cls` | Create a plain class in `src/classes/` |
+| `make:test` | `m:t` | Create a unit test (`<name>.spec.ts`) for an existing file |
 | `make:migration` | `m:mig` | Create a database migration |
 | `make:seeder` | `m:sd` | Create a database seeder |
 | `make:factory` | `m:f` | Create a model factory with Faker values |
@@ -46,6 +49,9 @@ npm i -g @meghjs/cli
 | `template:list` | `templates` | List the model templates |
 
 Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
+The generators except `make:model` and the database ones (`make:migration`,
+`make:seeder`, `make:factory`) also write a unit test next to the file; pass
+`--notest` (or `-nt`) to skip it. See [Tests](/cli/generators#tests).
 `make:model` and `make:resource` also build the table from a
 [template](/cli/scaffold/templates) with `--template` or `--fields`.
 
@@ -53,9 +59,20 @@ Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 
 | Page | Commands |
 |---|---|
-| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `update:model`, `make:middleware`, `make:config`, `make:mail`, `make:event`, `make:listener`, `make:queue`, `make:worker`, `make:task` |
+| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `sync:model`, `make:middleware`, `make:config`, `make:mail`, `make:event`, `make:listener`, `make:queue`, `make:worker`, `make:task`, `make:dto`, `make:class`, `make:test` |
 | [Database Commands](/cli/database) | `make:migration`, `migrate*`, `make:seeder`, `db:seed`, `make:factory` |
 | [Scaffold](/cli/scaffold/) | `--template`, `--fields`, `scaffold:domain`, `scaffold:auth`, `scaffold:rbac`, `template:list` |
+
+## Version and info
+
+```sh
+npx megh -v       # the Megh logo and the CLI version (also --version)
+npx megh --info   # the logo, CLI, Node.js and OS versions, and the project's Megh packages
+```
+
+The logo appears only here; `megh --help` and the other commands print
+without it. `--info` also shows the installed `@meghjs/core`, `@meghjs/data`
+and TypeScript versions when run inside an app: paste it into a bug report.
 
 ## Application
 
