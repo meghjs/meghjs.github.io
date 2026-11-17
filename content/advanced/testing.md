@@ -107,7 +107,7 @@ How this works matters:
 test starts fresh. Values set for tokens and strings are kept. See
 [Testing in Dependency Injection](/core-concept/dependency-injection#testing).
 
-::: info Before 0.6.4
+::: info Before 0.6.5
 Stand-ins were registered in the shared container, and a class that was
 already built was returned as-is, ignoring them.
 :::

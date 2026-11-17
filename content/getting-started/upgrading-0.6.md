@@ -1,6 +1,6 @@
 ---
 title: Upgrading to 0.6
-description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, framework logs through the logger and a safer scaffolded .env in 0.6.0; mail, security headers and rate limiting in 0.6.1; module-first generators, event, queue and task generators and change review in 0.6.3."
+description: "What changes in Megh 0.6: removed no-op APIs, run() reading PORT, framework logs through the logger and a safer scaffolded .env in 0.6.0; mail, security headers and rate limiting in 0.6.1; module-first generators, event, queue and task generators and change review in 0.6.3; generated tests, make:test, make:class, make:model --orm/--typeorm, compression, versioning and env schemas in 0.6.5."
 ---
 
 # Upgrading to 0.6
@@ -13,13 +13,97 @@ or two. Read [Breaking in 0.6.0](#breaking-in-0-6-0) before upgrading.
 [New in 0.6.3](#new-in-0-6-3) and [New in 0.6.1](#new-in-0-6-1). 0.6.2 was
 tagged but never published to npm; its changes ship in 0.6.3.
 
+0.6.5 adds features and fixes, and changes some CLI generator flags
+(`make:model` writes a plain class unless you pass `--orm`). Apps don't
+need code changes. See [New in 0.6.5](#new-in-0-6-5).
+
 A `0.x` minor release can contain breaking changes; patch releases such as
 0.6.1 don't. See the [versioning policy](/reference/versioning).
 
 ```sh
-npm i @meghjs/core@^0.6.3
-npm i -D @meghjs/cli@^0.6.3
+npm i @meghjs/core@^0.6.5
+npm i -D @meghjs/cli@^0.6.5
 ```
+
+## New in 0.6.5
+
+There is no 0.6.4: the changes on `main` after 0.6.3 ship in 0.6.5.
+
+### Changes to the CLI generators
+
+0.6.5 changes what some generator flags mean. Your app's code is not
+affected, only what the `make:*` commands write from now on. Check any
+scripts that run them:
+
+- **`make:model` writes a plain class by default.** For a Megh ORM model
+  (columns read from its migration), add `--orm`:
+  `megh make:model user --orm`. `--template` and `--fields` still build a
+  Megh ORM model without it.
+- **`--orm` now means Megh ORM; TypeORM is `--typeorm`.** On `make:model`,
+  `make:controller -m` and `make:service -m`, replace `--orm` with
+  `--typeorm` where you generate TypeORM entities or repository services.
+  With `-m`, Megh ORM stays the default.
+- **A resource can't be built on a plain class.** `make:resource`,
+  `make:controller -m` and `make:factory` stop with a message if the model
+  file is a plain class; regenerate it with `make:model <name> --orm --force`.
+- **`megh -v` prints the logo, then `Megh v<version>`**, instead of the bare
+  version. A script that reads it should match `v(\d+\.\d+\.\d+)` on the
+  last line, or use `npm ls @meghjs/cli`. `megh --help` and `megh new` no
+  longer print the logo.
+
+### New
+
+- **Generators write unit tests.** `make:service user` also writes
+  `src/services/user.service.spec.ts`, and so do the other generators except
+  `make:model` and the database ones. `make:resource` tests every service
+  method and route without a database. Pass `--notest` (or `-nt`) to skip
+  them. See [CLI: Tests](/cli/generators#tests).
+- **`make:test` (`m:t`)** writes a test for a file you already have:
+  `megh make:test user.service`.
+- **`make:class` (`m:cls`)** writes a plain class in `src/classes/`.
+- **`megh --info`** prints the CLI, Node.js and OS versions and the project's
+  Megh packages, for bug reports. See [Version and info](/cli/basic#version-and-info).
+- **Compression.** `app.useCompression()`, over `@fastify/compress`. See
+  [Compression](/getting-started/application#compression).
+- **Global prefix and versioning.** `app.setGlobalPrefix('api', { exclude })`
+  and `app.useVersioning({ type: 'uri' | 'header' })` with `@Version()`. See
+  [Global prefix and versioning](/core-concept/controller#global-prefix-and-versioning).
+- **Redirects and response headers.** `@Redirect(url, status)`,
+  `Results.Redirect(url, status)` and `@ResponseHeader(name, value)`. See
+  [Redirects and headers](/getting-started/usage#redirects-and-headers).
+- **Validated environment and config.** `app.useEnvSchema(EnvDto)` and
+  `@AppConfig({ schema })` check values at boot and list every problem in a
+  `ConfigValidationError`. See [Validating at boot](/core-concept/configuration#validating-at-boot).
+- **Socket.IO authentication.** The `useAuthentication` handler runs on the
+  handshake and sets `socket.data.user`. See
+  [WebSocket: Authentication](/microservices/websocket#authentication).
+- **`megh migrate --compiled`** (and `db:seed --compiled`) runs the built
+  `.js` migrations, for production images without `src/`. It is picked
+  automatically when there is no `src/` folder. See
+  [Database Commands](/cli/database).
+
+### Fixes
+
+- The CLI's generated files load when a name matches a Megh decorator:
+  `make:config app` (`AppConfig`) and a `Post`, `Get` or `Query` model in
+  `make:resource`.
+- `MeghTest.getController` / `getProvider` stand-ins are no longer written to
+  the shared container, and requests wait for the routes to be mapped. See
+  [Testing](/advanced/testing#replacing-dependencies).
+- `PartialType`, `PickType` and `OmitType` copy class-validator,
+  class-transformer, Megh and OpenAPI metadata.
+- `MEGH_DOTENV=false` stops `Environment` from reading `.env`;
+  `GetConfig` passes on errors from `config()` and caches until
+  `Environment.reload()`.
+- Controller auto-discovery reads the tsconfig `rootDir`/`outDir`, detects
+  tsx and other TypeScript runtimes, and fails on a file it can't import.
+- Scheduler: tasks stop when startup fails, `close()` waits for running jobs,
+  and `useScheduler({})` scans `src/tasks`.
+- `useControllers()` adds to earlier lists; a clear boot error for
+  `@Body()` / `@Query()` without decorator metadata; Scalar serves the
+  generated spec; `FileStorage` confines saves after following symlinks; the
+  error logger logs the path without the query string.
+- `megh doctor` requires Node.js 22, like the packages.
 
 ## New in 0.6.3
 

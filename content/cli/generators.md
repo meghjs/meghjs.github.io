@@ -181,7 +181,7 @@ export class User {
 If a migration already creates the table, the command says so and suggests
 `--orm`.
 
-::: warning Before this release
+::: warning Before 0.6.5
 `make:model user` wrote a Megh ORM model, and `--orm` made a TypeORM entity.
 Now `--orm` means Megh ORM and `--typeorm` means TypeORM, on `make:model`,
 `make:controller` and `make:service`.
