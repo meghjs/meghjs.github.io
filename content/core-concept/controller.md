@@ -293,6 +293,52 @@ export class User extends Model {
 `HttpExceptions.notFound` check. See [MeghORM](/advanced/orm) for connecting the
 database, and [Queries](/advanced/orm/queries) for what models can do.
 
+## Global prefix and versioning
+
+`setGlobalPrefix` serves every controller and inline route under a prefix.
+Health routes and the API docs page keep their own paths; `exclude` leaves
+more routes alone (paths as declared, or RegExps):
+
+```ts
+app.setGlobalPrefix('/api', { exclude: ['/status'] });
+// @ApiController('/users') @Get('/')  →  GET /api/users
+```
+
+`useVersioning` serves controllers under API versions. Mark a controller or
+a route with `@Version()` (or `@ApiController({ path, version })`); a route's
+version overrides its controller's:
+
+```ts
+import { ApiController, Get, Version } from '@meghjs/core';
+
+@Version('2')
+@ApiController('/users')
+export class UsersV2Controller {
+  @Get('/')
+  list() { ... }
+
+  @Get('/export')
+  @Version(['1', '2'])  // served for both versions
+  export() { ... }
+}
+```
+
+| Option | Requests look like |
+|--------|--------------------|
+| `{ type: 'uri' }` | `GET /api/v2/users`. `prefix` changes the `v` |
+| `{ type: 'header' }` | `GET /api/users` with `X-API-Version: 2`. `header` changes the header name |
+
+`defaultVersion` is the version of controllers without `@Version()`. With
+header versioning it is also used when a request sends no version header.
+Without a default, unversioned controllers keep their plain path.
+
+```ts
+app.useVersioning({ type: 'uri', defaultVersion: '1' });
+```
+
+Inline routes (`app.mapGet`, ...) get the global prefix but are not
+versioned.
+
 ## Throwing errors
 
 `HttpExceptions` covers the common status codes — `notFound`, `badRequest`,

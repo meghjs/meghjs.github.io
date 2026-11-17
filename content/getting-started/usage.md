@@ -115,8 +115,44 @@ async findOne(@Param('id') id: number) {
 | `Results.OkStream(stream, { contentType, filename })` | 200 | the stream |
 | `HttpResponse.Created(x)` | 201 | `{ message, data }` |
 | `HttpResponse.NoContent()` | 204 | empty |
+| `Results.Redirect(url, status?)` | 302 (or 301, 303, 307, 308) | empty, `Location: url` |
 
 A returned result's status wins over `@HttpCode`.
+
+### Redirects and headers
+
+`@Redirect(url, status?)` redirects instead of sending the return value. The
+handler can pick another target by returning `{ url, statusCode }`:
+
+```ts
+import { Get, Redirect, ResponseHeader, Results } from '@meghjs/core';
+
+@Get('/docs')
+@Redirect('https://docs.example.com', 301)
+docs() {}
+
+@Get('/latest')
+@Redirect('/releases')
+latest() {
+  return { url: `/releases/${this.releases.latestId()}` }; // 302 there
+}
+
+@Get('/me')
+me(@AuthUser() user?: User) {
+  return user ?? Results.Redirect('/login');
+}
+```
+
+`@ResponseHeader(name, value)` sets a header on every response from the
+route. Stack it for several; a header a returned `Results.*` sets wins:
+
+```ts
+@Get('/report')
+@ResponseHeader('Cache-Control', 'no-store')
+report() { ... }
+```
+
+`@Header()` is the parameter decorator that reads a *request* header.
 
 To send an error status, throw an HTTP exception:
 

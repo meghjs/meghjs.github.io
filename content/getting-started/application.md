@@ -73,6 +73,10 @@ Each `use*` method returns the app, so they chain. Call them before `run()`.
 | `useRateLimit(options?)` | Requests per client per window, 429 over the limit | [Security](/production/security#add-rate-limits) |
 | `useMultipart(options)` | File uploads, through `@fastify/multipart` | [File Uploads](/advanced/file-uploads) |
 | `useStaticFiles(options)` | Serve files, through `@fastify/static` | [File Uploads](/advanced/file-uploads) |
+| `useCompression(options?)` | gzip / brotli responses, through `@fastify/compress` | [Compression](#compression) |
+| `setGlobalPrefix(prefix, { exclude? })` | Serve every route under a prefix such as `/api` | [Controllers](/core-concept/controller#global-prefix-and-versioning) |
+| `useVersioning(options)` | Version routes with `@Version()`, by URI or header | [Controllers](/core-concept/controller#global-prefix-and-versioning) |
+| `useEnvSchema(EnvDto)` | Validate environment variables at boot | [Configuration](/core-concept/configuration#validating-at-boot) |
 | `useCache(options)` | Memory or Redis cache | [Caching](/advanced/caching) |
 | `useMeghORM(options)` | Database connection for MeghORM | [MeghORM](/advanced/orm) |
 | `useScheduler([...])` or `useScheduler({ path })` | Scheduled tasks | [Scheduler](/advanced/scheduler) |
@@ -113,6 +117,21 @@ app.useGlobal({
 | `multipart` | `useMultipart` |
 | `staticFiles` | `useStaticFiles` |
 | `scheduler` | `useScheduler` |
+| `compression` | `useCompression` (`true` or options) |
+
+### Compression
+
+`useCompression()` compresses responses for clients that send
+`Accept-Encoding`, with `@fastify/compress`
+(`npm install @fastify/compress`). Bodies under 1024 bytes are sent as they
+are. Options go to the plugin:
+
+```ts
+app.useCompression();
+app.useCompression({ encodings: ['br', 'gzip'], threshold: 2048 });
+```
+
+If a proxy or CDN in front of the app already compresses, leave it off.
 
 ## Running the app
 
@@ -139,6 +158,8 @@ a second call throws `App already running`.
 
 In order:
 
+1. Validates the environment (`useEnvSchema`) and every
+   `@AppConfig({ schema })` class.
 1. Prepares the OpenAPI document, if `useOpenApi` was called.
 2. Runs the `onInit` hooks. MeghORM connects to the database here.
 3. Finds controllers (with `{ auto: true }`), then maps controller and inline routes.

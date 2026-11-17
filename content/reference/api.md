@@ -64,6 +64,10 @@ calls chain.
 | `useRateLimit(options?: RateLimitOptions)` | Limit requests per client per window (default 100 a minute per IP, in memory) and answer 429 over it. Throws if called twice. See [Security](/production/security#add-rate-limits). |
 | `useMultipart(options?: any)` | Enable multipart bodies through `@fastify/multipart`. Defaults: `attachFieldsToBody: true`, 10 MB file size limit. |
 | `useStaticFiles(options?: any)` | Serve static files through `@fastify/static`. |
+| `useCompression(options?: CompressionOptions)` | Compress responses through `@fastify/compress`. |
+| `setGlobalPrefix(prefix: string, options?: { exclude?: (string \| RegExp)[] })` | Serve controller and inline routes under `prefix`. |
+| `useVersioning(options: VersioningOptions)` | Version controller routes by URI (`/v1/...`) or header. |
+| `useEnvSchema(schema: Constructor)` | Validate environment variables against a DTO class at boot. |
 | `useOpenApi(options?: OpenApiUiOptions \| Constructor<MeghConfig<OpenApiUiOptions>>)` | Generate the OpenAPI document and serve the docs page. |
 | `useMiddlewares(middlewares: Constructor<MeghMiddleware>[])` | Register global middleware, run before every route. |
 | `useAuthentication(authentication: Constructor<MeghAuthentication>)` | Register the authentication handler that sets `request.user`. |
@@ -157,6 +161,10 @@ Guide: [Controllers](/core-concept/controller).
 | `All` | decorator | same as `Get` | Handle every HTTP method Fastify supports. |
 | `Route` | decorator | `@Route(method: RouteMethods, pathOrOptions?, options?)` | Generic form of the method decorators above. |
 | `HttpCode` | decorator | `@HttpCode(statusCode: number)` | Status code for a successful response. A returned `Results.*` or `HttpResponse.*` status wins. Throws for codes outside 100–599. |
+| `Redirect` | decorator | `@Redirect(url: string, statusCode = 302)` | Redirect instead of sending the return value. Returning `{ url, statusCode }` overrides both. Throws for non-3xx codes. |
+| `ResponseHeader` | decorator | `@ResponseHeader(name: string, value: string)` | Set a response header on the route. Stackable. |
+| `Version` | decorator | `@Version(version: string \| string[])` | API version(s) of a controller or route, with `useVersioning()`. |
+| `VersioningOptions` | type | `{ type: 'uri'; prefix?; defaultVersion? } \| { type: 'header'; header?; defaultVersion? }` | Options for `useVersioning()`. |
 
 ### Types
 
@@ -207,6 +215,7 @@ Guide: [Controllers](/core-concept/controller).
 | `NoContent` | class | `204` with an empty body. |
 | `NotFound` | class | `404 { code, status, message }`. |
 | `OkStream` | class | `200` with a stream body. |
+| `RedirectResult` | class | A 3xx with `Location`; made by `Results.Redirect(url, statusCode?)`. |
 | `OkStreamOptions` | type | `{ contentType?: string; filename?: string }`. With `filename`, the stream is sent as an attachment. |
 | `RouteResult` | type | `typeof Results.Ok<T>`. |
 
@@ -215,6 +224,7 @@ Results.Ok<T>(data: T): Ok<T>
 Results.Created<T>(data: T): Created<T>
 Results.NoContent(): NoContent
 Results.NotFound<T>(message: T): NotFound<T>
+Results.Redirect(url: string, statusCode = 302): RedirectResult
 Results.OkStream(stream: Readable, options?: OkStreamOptions): OkStream
 ```
 
@@ -472,7 +482,10 @@ Guide: [Configuration](/core-concept/configuration).
 | Export | Kind | Signature / description |
 | --- | --- | --- |
 | `MeghConfig` | abstract class | `config(env: Environment): T`. Base class for a config class. |
-| `AppConfig` | decorator | `@AppConfig`. Register a `MeghConfig` subclass for DI. |
+| `AppConfig` | decorator | `@AppConfig` or `@AppConfig({ schema })`. Register a `MeghConfig` subclass for DI; with `schema`, its `config()` result is validated against that DTO class on first use and at boot. |
+| `AppConfigOptions` | type | `{ schema?: Constructor }`. |
+| `validateEnv` | function | `validateEnv(EnvDto, source?)` validates environment variables against a DTO class and returns them converted. |
+| `ConfigValidationError` | class | Thrown for an invalid environment or config; `source` and `issues` say what failed. |
 | `GetConfig` | function | `GetConfig(ConfigClass)` returns the class's `config()` result; `GetConfig(token: string \| symbol)` returns the value registered for the token. |
 | `MeghConfigClass` | type | A `MeghConfig` subclass. |
 | `Environment` | class | Reads `.env` merged with `process.env` (which wins): `get(key)`, `getOrThrow(key)`, `getAll()`, and static `reload()` to re-read `.env`. |

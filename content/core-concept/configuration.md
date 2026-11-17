@@ -165,6 +165,56 @@ If the class isn't registered, `GetConfig` throws
 An error thrown inside `config()`, for example `EnvironmentVariableNotFound`
 from `getOrThrow`, reaches you as it is.
 
+### Validating at boot
+
+Describe the environment as a DTO class, with the same validation
+decorators as request DTOs, and let the app check it when it starts:
+
+```ts [src/config/env.ts]
+import { IsIn, IsInt, IsString, Min } from '@meghjs/core';
+
+export class Env {
+  @IsInt()
+  @Min(1)
+  PORT: number;
+
+  @IsString()
+  DATABASE_URL: string;
+
+  @IsIn(['development', 'production', 'test'])
+  NODE_ENV: string;
+}
+```
+
+```ts [src/app.ts]
+app.useEnvSchema(Env);
+```
+
+`run()` then fails before anything starts, listing every problem:
+
+```txt
+ConfigValidationError: [Megh] Invalid environment:
+  PORT: PORT must not be less than 1
+  DATABASE_URL: DATABASE_URL must be a string
+```
+
+Only the variables the DTO declares are checked. Properties typed `number`
+or `boolean` are converted first (`"4000"` → `4000`, `"true"`/`"1"` →
+`true`). `validateEnv(Env)` does the same anywhere and returns the converted
+values.
+
+A config class can declare the shape of what `config()` returns:
+
+```ts
+@AppConfig({ schema: MailSettingsDto })
+export class MailConfig extends MeghConfig<MailSettings> { ... }
+```
+
+The result is checked on the first `GetConfig(MailConfig)` and, for every
+class with a schema, when the app starts. Properties the schema doesn't
+declare are not checked. Both throw `ConfigValidationError`, whose `issues`
+list each failing property.
+
 ### Reading a token
 
 `GetConfig` also accepts a token or string name and returns whatever is
