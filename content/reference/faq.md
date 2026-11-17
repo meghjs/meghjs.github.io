@@ -19,9 +19,10 @@ npx megh doctor
 
 Megh reads TypeScript's decorator metadata (`design:paramtypes`) to find
 constructor dependencies and the DTO class of a `@Body()` or `@Query()`
-parameter. Without it, nothing fails at startup: the DTO is treated as
-untyped and not validated, and constructor parameters are `undefined`, so
-you see `TypeError: Cannot read properties of undefined` in a handler.
+parameter. Without it, a `@Body()` or `@Query()` without `{ type }` stops
+startup with `@Body() (parameter 0) has no type, because decorator metadata
+wasn't emitted`. Constructor parameters are `undefined`, so you may also see
+`TypeError: Cannot read properties of undefined` in a handler.
 
 Turn both flags on:
 
@@ -130,22 +131,23 @@ check that it doesn't return `false` (that is a 403 too) and that
 ### Auto-discovered controllers aren't found
 
 `useControllers({ auto: true })` scans every `controllers/` folder under
-`src/` (`src/controllers/`, `src/users/controllers/`), but only the
-compiled files: outside ts-node it swaps the leading `src` for `dist` and
-loads `.js` files from there. Paths are relative to the current working
-directory. Routes go missing when:
+`src/` (`src/controllers/`, `src/users/controllers/`). When TypeScript runs
+directly (ts-node, tsx, `node --experimental-strip-types src/serve.ts`) it
+loads the `.ts` files from `src`. Otherwise it loads the compiled `.js`
+files: it reads `rootDir` and `outDir` from `tsconfig.build.json` or
+`tsconfig.json` (defaults `src` and `dist`) and also tries the nested
+`dist/src/controllers` when `rootDir` isn't set. Paths are relative to the
+current working directory. Routes go missing when:
 
-- **You run with tsx.** Only ts-node is detected, so tsx looks for `.js`
-  files in `dist/controllers`. Use `megh serve`, or list the controllers.
-- **`outDir` isn't `dist`.** Pass the compiled folder:
-  `useControllers({ auto: true, path: 'build/controllers' })`.
-- **The output is nested**, e.g. `dist/src/controllers`. This happens when
-  `tsconfig.json` compiles files outside `src/`. Set `"rootDir": "src"` or
-  narrow `include`.
+- **The app wasn't built**, so the compiled folder doesn't exist yet.
+- **The tsconfig isn't in the working directory**, or `outDir` comes from a
+  package `extends` (only relative `extends` are followed). Pass the
+  compiled folder: `useControllers({ auto: true, path: 'build/controllers' })`.
 - **The app starts from another directory.** Start it from the project root.
 
-When the folder can't be read, Megh logs `Could not auto-register
-controllers` with the folder it tried. Passing a list,
+When the folder doesn't exist, Megh logs `Could not auto-register
+controllers` with the folder it tried. A file in it that fails to import
+stops startup with the file name and the error. Passing a list,
 `useControllers([UserController, ...])`, avoids all of this.
 
 ### `EADDRINUSE: address already in use`

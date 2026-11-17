@@ -51,8 +51,8 @@ hides why a health check failed outside development.
 
 - saves files under a random UUID name that keeps the extension;
 - rejects filenames containing `/`, `\`, `..` or null bytes;
-- keeps every path, including `to`, inside `baseDir`. When reading a stored
-  file it checks this again after following symlinks;
+- keeps every path, including `to`, inside `baseDir`. When saving or reading
+  it checks this again after following symlinks;
 - accepts only an allowlist of extensions (images, PDF, office files,
   text/CSV, zip, audio and video). HTML, SVG and JS are rejected;
 - never overwrites an existing file.

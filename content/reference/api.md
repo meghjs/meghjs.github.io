@@ -122,7 +122,7 @@ and `useOpenApi(options: OpenApiOptions)`.
 | `getPlugins(): readonly string[]` | Names of the registered plugins, in registration order. |
 | `isDevelopment(): boolean` | `true` only when `NODE_ENV` is exactly `"development"`. |
 | `installErrorHandling()` | Internal. Installs the error and not-found handlers. `run()` calls it. |
-| `MeghApplication.getApp(options?)` | Static. Returns the shared instance, creating it on first call. `Megh.createApplication()` calls it. |
+| `MeghApplication.getApp(options?)` | Static. Returns the shared instance, creating it on first call. Options passed to later calls are ignored, with a warning. `Megh.createApplication()` calls it. |
 | `MeghApplication.getInternalApp(options?)` | Static, deprecated, internal. Creates a new, unshared instance. |
 
 ### Application types
@@ -476,6 +476,7 @@ Guide: [Configuration](/core-concept/configuration).
 | `GetConfig` | function | `GetConfig(ConfigClass)` returns the class's `config()` result; `GetConfig(token: string \| symbol)` returns the value registered for the token. |
 | `MeghConfigClass` | type | A `MeghConfig` subclass. |
 | `Environment` | class | Reads `.env` merged with `process.env` (which wins): `get(key)`, `getOrThrow(key)`, `getAll()`, and static `reload()` to re-read `.env`. |
+| `EnvironmentVariableNotFound` | class | Error thrown by `getOrThrow()` for a missing variable; the name is in `key`. |
 
 ## ORM
 

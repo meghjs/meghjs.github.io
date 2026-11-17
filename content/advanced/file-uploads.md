@@ -72,7 +72,7 @@ Both paths are relative to `baseDir`, with the prefixes `/uploads/` and
 | 50 MB limit, enforced while streaming | `maxFileSize` |
 
 Every path, including `to`, is confined to `baseDir`. Paths that try to escape
-it, through `..` or a symlink, are rejected.
+it, through `..` or a symlink, are rejected, both when saving and when reading.
 
 ::: info
 In 0.3.0, a file that breaks these rules gives a 500 response, not 400

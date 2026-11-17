@@ -88,18 +88,22 @@ it('sends a welcome mail', async () => {
 
 How this works matters:
 
-- Each stand-in replaces that class in the **shared container**, not just for
-  this one controller. Anything else that resolves `MailerService` afterwards
-  gets the stand-in too.
-- If the class under test was already built, it is returned as-is and the new
-  stand-ins are ignored.
+- Every call builds a **new** instance. The stand-ins are used for that
+  instance only; nothing is registered in the shared container, so other
+  classes and other tests never see them.
+- Parameters you don't pass are resolved from the container as usual.
 - Only constructor parameters are matched. For `inject()` fields, register
   the stand-in with `MeghContainer.set(MailerService, fake)` before resolving
   the class.
 
-Call `MeghTest.clean()` after each test. It drops every built instance,
-including stand-ins set for classes, so the next test starts fresh. Values set
-for tokens and strings are kept. See [Testing in Dependency Injection](/core-concept/dependency-injection#testing).
+`MeghTest.clean()` drops every built instance in the container, so the next
+test starts fresh. Values set for tokens and strings are kept. See
+[Testing in Dependency Injection](/core-concept/dependency-injection#testing).
+
+::: info Before 0.6.4
+Stand-ins were registered in the shared container, and a class that was
+already built was returned as-is, ignoring them.
+:::
 
 ## Route tests
 
@@ -169,7 +173,9 @@ It returns only the `TestApplication`, so there is no app to `close()`. Use
 ### What `from()` does and doesn't do
 
 `MeghTest.from(app)` maps the controllers you passed to `useControllers([...])`
-and installs the error handler. It does not call `run()`, so:
+and installs the error handler. Each request waits until the controllers are
+mapped, and a mapping error (such as a class that isn't an `@ApiController`)
+is thrown by the request. It does not call `run()`, so:
 
 - Controllers from `useControllers({ auto: true })` are not found. List them.
 - Inline routes (`app.mapGet`, `app.mapPost`, ...) are not mapped, and return

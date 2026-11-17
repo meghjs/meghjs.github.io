@@ -107,6 +107,10 @@ parameter type. Pass it explicitly:
 create(@Body({ type: CreateUserDto }) body: CreateUserDto) {}
 ```
 
+Without metadata, a `@Body()` or `@Query()` with no `type` stops startup with
+an error that names the route and the compiler setting, rather than leaving
+the DTO unvalidated. Pass `{ validate: false }` to take the raw value.
+
 ## Validating the query string
 
 The same applies to `@Query()`. Query values arrive as strings; Megh converts
@@ -282,11 +286,14 @@ import { CreateUserDto } from './create-user.dto';
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
 ```
 
-::: warning
-The derived class copies the properties' types but not their validation rules,
-for class-validator and Megh decorators alike, so it validates nothing until
-this is fixed. For now, declare the rules on the derived DTO.
-:::
+The derived class keeps the validation and transformation rules of the
+properties it keeps, from class-validator, class-transformer or Megh's own
+decorators, along with their OpenAPI metadata and default values.
+`PartialType` also marks every property `@IsOptional()`, so a missing field
+passes but a present one is still checked.
+
+The derived DTO doesn't extend the source: `instanceof CreateUserDto` is
+`false` for an `UpdateUserDto`.
 
 ## Extra validators
 
