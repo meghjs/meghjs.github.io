@@ -1,9 +1,9 @@
 ---
-title: Database
-description: Connecting Megh to a database with TypeORM or Knex.
+title: TypeORM and Knex
+description: Using TypeORM or Knex through @meghjs/data, as an alternative to MeghORM.
 ---
 
-# Database
+# TypeORM and Knex
 
 ::: tip Built-in models
 `@meghjs/core` also has its own type-safe models and migrations, built on
@@ -80,7 +80,7 @@ import app, { setup } from './app';
 async function serve() {
   await setup();
   const env = inject(Environment);
-  await app.run(env.get<number>('PORT') || 4000);
+  await app.run(Number(env.get('PORT')) || 4000);
 }
 
 serve();
@@ -113,7 +113,7 @@ export class User {
 Generate one with the CLI:
 
 ```sh
-npx megh make:model user --orm
+npx megh make:model user --typeorm
 ```
 
 ### Injecting a repository

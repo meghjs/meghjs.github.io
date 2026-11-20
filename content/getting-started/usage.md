@@ -1,14 +1,14 @@
 ---
-title: Usage
-description: How to create a basic megh application.
+title: Quick Start
+description: Writing your first routes, with a controller or inline, returning responses and running the app.
 ---
 
-# Usage
+# Quick Start
 
 There are two ways to design your application: `Controller based` and
 `Route method based`. They can be mixed in the same app.
 
-## Using Controller
+## Using a controller
 
 Controllers group related routes and can take dependencies through the
 constructor. This is the approach the CLI scaffolds.
@@ -41,10 +41,10 @@ export class WelcomeController {
 See [Controller](/core-concept/controller) for parameters, REST resources and
 error handling.
 
-## Using Inline Route
+## Using inline routes
 
 For small apps, register handlers directly on the app with `mapGet`, `mapPost`,
-`mapPut` and `mapDelete`:
+`mapPut`, `mapPatch` and `mapDelete`:
 
 ::: code-group
 ```ts [app.ts]
@@ -54,7 +54,7 @@ const app = Megh.createApplication();
 
 app.mapGet('/', () => 'Welcome to Megh.');
 
-app.run(); // by default run on :4000
+app.run(); // PORT from the environment, else :4000
 ```
 :::
 
@@ -68,18 +68,93 @@ app.mapPost('/users', (req) => {
 });
 ```
 
-Inline routes return a chainable object for middleware and OpenAPI metadata:
+Inline routes return a chainable object for middleware, authorization and
+OpenAPI metadata:
 
 ```ts
 app.mapGet('/secret', handler)
-  .useMiddleware([ApiKeyMiddleware])
+  .useMiddleware([ApiKeyMiddleware])  // classes (resolved through DI) or instances
+  .authorized()                       // like @Authorized(); .authorized('jwt') picks a handler
   .useOpenApi({ tags: ['internal'] });
 ```
+
+They run the same pipeline as controller routes: middleware, then the
+authentication handler (`request.user`), then `.authorized()`. Return
+`Results.*` to set the status code; thrown errors go through the
+[error handler](/core-concept/error-handling).
 
 ## Returning responses
 
 Returning an object or array sends JSON; returning a string sends it as-is.
-To send an error status, throw an `HttpExceptions` error:
+
+Set the status code with `@HttpCode`, or return a result that carries one:
+
+```ts
+import { Post, Get, HttpCode, Results, HttpResponse } from '@meghjs/core';
+
+@Post('/')
+@HttpCode(201)
+create(@Body() dto: CreateUserDto) {
+  return this.users.create(dto);          // 201 with the user as JSON
+}
+
+@Get('/:id')
+async findOne(@Param('id') id: number) {
+  const user = await this.users.find(id);
+  return user ? Results.Ok(user)          // 200 { data: user }
+              : Results.NotFound('nope'); // 404 { code, status, message }
+}
+```
+
+| Result | Status | Body |
+|--------|--------|------|
+| `Results.Ok(x)` | 200 | `{ data: x }` |
+| `Results.Created(x)` | 201 | `{ data: x }` |
+| `Results.NoContent()` | 204 | empty |
+| `Results.NotFound(msg)` | 404 | `{ code, status, message }` |
+| `Results.OkStream(stream, { contentType, filename })` | 200 | the stream |
+| `HttpResponse.Created(x)` | 201 | `{ message, data }` |
+| `HttpResponse.NoContent()` | 204 | empty |
+| `Results.Redirect(url, status?)` | 302 (or 301, 303, 307, 308) | empty, `Location: url` |
+
+A returned result's status wins over `@HttpCode`.
+
+### Redirects and headers
+
+`@Redirect(url, status?)` redirects instead of sending the return value. The
+handler can pick another target by returning `{ url, statusCode }`:
+
+```ts
+import { Get, Redirect, ResponseHeader, Results } from '@meghjs/core';
+
+@Get('/docs')
+@Redirect('https://docs.example.com', 301)
+docs() {}
+
+@Get('/latest')
+@Redirect('/releases')
+latest() {
+  return { url: `/releases/${this.releases.latestId()}` }; // 302 there
+}
+
+@Get('/me')
+me(@AuthUser() user?: User) {
+  return user ?? Results.Redirect('/login');
+}
+```
+
+`@ResponseHeader(name, value)` sets a header on every response from the
+route. Stack it for several; a header a returned `Results.*` sets wins:
+
+```ts
+@Get('/report')
+@ResponseHeader('Cache-Control', 'no-store')
+report() { ... }
+```
+
+`@Header()` is the parameter decorator that reads a *request* header.
+
+To send an error status, throw an HTTP exception:
 
 ```ts
 import { HttpExceptions } from '@meghjs/core';
@@ -88,84 +163,32 @@ throw HttpExceptions.notFound('User not found');
 ```
 
 Error responses have the shape `{ code, status: "Error", message, data? }`.
-Outside development, 5xx responses hide the message and data.
+Outside development, 5xx responses hide the message and data. See
+[Error Handling](/core-concept/error-handling).
 
-::: info
-In 0.3.0, `Results.Created`, `Results.NoContent`, `HttpResponse.Created`
-and `@HttpCode` do not change the status code yet; the response is 200. See
-[Known issues](/getting-started/upgrading#known-issues-in-0-3-0).
-:::
-
-Inline routes skip authentication, `@Authorized` checks and DTO validation.
-Use a controller when you need them.
+Inline routes don't validate DTOs; use a controller when you need that.
 
 ## Running the app
 
-`run` takes an optional port, defaulting to `4000`:
+`run` takes an optional port. Without one it uses the `PORT` environment
+variable, else `4000`:
 
 ```ts
-app.run();      // :4000
+app.run();      // PORT, else :4000
 app.run(3000);  // :3000
+app.run(3000, { host: '127.0.0.1' });
 ```
 
-Read the port from the environment to make it configurable:
+Set `NODE_ENV=development` locally to get detailed errors and pretty logs. An
+unset `NODE_ENV` counts as production.
 
-```ts [serve.ts]
-import { Environment, inject } from '@meghjs/core';
-import app from './app';
-
-async function serve() {
-  const env = inject(Environment);
-  await app.run(env.get<number>('PORT') || 4000);
-}
-
-serve();
-```
-
-## Lifecycle hooks
-
-Register work to run at each stage of the app's life. Call these before
-`run()`; each returns the app, so they chain:
-
-```ts
-app
-  .onInit(async () => {
-    // After the database connects, before routes are mapped and the server
-    // listens. A thrown error aborts startup.
-    await cache.warmUp();
-  })
-  .onReady(() => {
-    // The server is listening.
-    console.log('ready');
-  })
-  .onClose(async () => {
-    // On shutdown, after the server stops accepting requests.
-    await metrics.flush();
-  });
-```
-
-Hooks of the same kind run in the order you register them, except `onClose`
-hooks, which run in reverse so that things set up last are torn down first. A
-failing `onClose` hook is logged and the others still run.
-
-`await app.close()` shuts the app down yourself, for example at the end of a
-test. It stops the HTTP server (waiting for in-flight requests), the
-scheduler and queue workers, then runs the `onClose` hooks. Calling it twice
-is safe.
-
-## Development and production
-
-`app.isDevelopment()` is true only when `NODE_ENV=development`. An unset
-`NODE_ENV` counts as production. In production mode, 5xx details are hidden
-and logs are written as JSON. Set `NODE_ENV=development` locally to get
-detailed errors, pretty logs and any docs you gate behind `isDevelopment()`.
-
-`run()` binds to localhost. On `SIGTERM` or `SIGINT` it calls `app.close()`
-before exiting.
+See [Application](/getting-started/application) for the app options, the
+`use*` methods, what `run()` does, lifecycle hooks and shutdown.
 
 ## Next steps
 
+- [Application](/getting-started/application) — options, lifecycle and shutdown
 - [Controller](/core-concept/controller) — routes, parameters, REST resources
 - [Middleware](/core-concept/middleware) — request pipeline
-- [Database](/advanced/database) — TypeORM and Knex
+- [MeghORM](/advanced/orm) — models, queries, relations and migrations
 - [OpenAPI](/microservices/openapi) — API documentation

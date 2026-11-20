@@ -21,11 +21,11 @@ hero:
 
 features:
   - title: Decorator-based routing
-    details: Controllers, route methods and parameter decorators, with DTOs validated and whitelisted by class-validator.
+    details: Controllers, route methods and parameter decorators, with DTOs validated and whitelisted by compiled, class-validator-compatible decorators.
   - title: Secure by default
     details: Deny-by-default authorization, confined file storage and production-safe error responses.
   - title: Batteries included
-    details: Type-safe models and migrations, TypeORM and Knex, events, BullMQ queues, scheduling, caching, Socket.IO and structured logging.
+    details: MeghORM type-safe models and migrations, events, BullMQ queues, scheduling, caching, Socket.IO and structured logging.
 ---
 
 ## Hello, Megh

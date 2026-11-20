@@ -1,14 +1,14 @@
 ---
-title: Controller
-description: Megh Controller
+title: Controllers
+description: Defining routes with controllers, reading route parameters, building REST controllers and returning errors.
 ---
 
-# Controller
+# Controllers
 
 A controller groups related routes. Mark the class with `@ApiController` and its
 methods with a route decorator — `@Get`, `@Post`, `@Put`, `@Patch`, `@Delete`.
 
-## Basic Controller
+## Basic controller
 
 ```sh
 npx megh make:controller welcome
@@ -62,7 +62,7 @@ findOne(@Param('id') id: number) {
 }
 ```
 
-## REST controller with in-built collection
+## REST controller with a built-in collection
 
 `Collection` holds items in memory — useful for prototypes and tests, with no
 database required.
@@ -149,147 +149,195 @@ export class User {
 `Collection` also offers `paginate({ page, perPage })`, `max`, `min`, `sum`, `avg`,
 `updateBy`, `deleteBy` and async variants (`findAsync`, `findOneAsync`).
 `paginate` returns the same `{ data, meta }` shape as the database paginators;
-see [Pagination](/advanced/database#pagination).
+see [Pagination](/advanced/orm/queries#pagination).
 
-## REST controller with typeorm repository
+## REST controller with a MeghORM model
 
-With `--orm` the generated controller delegates to a service holding a TypeORM
-repository, which keeps data access out of the controller.
+With `--model` the generated controller delegates to a service that queries a
+[MeghORM](/advanced/orm) model, which keeps data access out of the controller.
+The model, its DTOs and the service are generated too if they don't exist yet;
+the model's columns are read from the migration that creates its table.
 
 ```sh
-npx megh make:controller users --model user --rest --orm
+npx megh make:controller users --model user --rest
 ```
 
 or shorthand
 
 ```sh
-npx megh m:c users -m user -r --orm
+npx megh m:c users -m user -r
 ```
 
 ::: code-group
 ```ts [users.controller.ts]
 import {
   ApiController,
+  ApiResponse,
+  Body,
+  Delete,
   Get,
+  Paginated,
+  Param,
   Post,
   Put,
-  Delete,
-  Param,
   Query,
-  Body,
-  HttpExceptions,
 } from '@meghjs/core';
+import { User } from '../models/user.model';
+import { CreateUserDto, ListUsersQuery, UpdateUserDto } from '../dtos/user.dto';
 import { UserService } from '../services/user.service';
-import { User } from '../models/user';
 
 @ApiController('/users')
 export class UsersController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  async index(@Query() query?: any) {
-    if (query && query.page) {
-      return this.userService.paginate(Number(query.page));
-    }
-    return this.userService.findAll();
+  @ApiResponse(200, Paginated(User))
+  index(@Query() query: ListUsersQuery) {
+    return this.userService.paginate(query);
   }
 
   @Get('/:id')
-  async findOne(@Param('id') id: number) {
-    const user = await this.userService.findByPk(id);
-    if (!user) throw HttpExceptions.notFound('User not found');
-    return user;
+  @ApiResponse(200, User)
+  @ApiResponse(404)
+  show(@Param('id') id: number) {
+    return this.userService.findOrFail(id);
   }
 
   @Post()
-  async create(@Body() body: Partial<User>) {
+  @ApiResponse(200, User)
+  create(@Body() body: CreateUserDto) {
     return this.userService.create(body);
   }
 
   @Put('/:id')
-  async update(@Param('id') id: number, @Body() updateBody: Partial<User>) {
-    const user = await this.userService.findByPk(id);
-    if (!user) throw HttpExceptions.notFound('User not found');
-    return this.userService.update(id, updateBody);
+  @ApiResponse(200, User)
+  @ApiResponse(404)
+  update(@Param('id') id: number, @Body() body: UpdateUserDto) {
+    return this.userService.update(id, body);
   }
 
   @Delete('/:id')
+  @ApiResponse(200, { type: 'object', properties: { message: { type: 'string' } } })
+  @ApiResponse(404)
   async delete(@Param('id') id: number) {
-    const user = await this.userService.findByPk(id);
-    if (!user) throw HttpExceptions.notFound('User not found');
-    return this.userService.delete(id);
+    await this.userService.delete(id);
+    return { message: 'User deleted.' };
   }
 }
 ```
 
 ```ts [services/user.service.ts]
-import { AppService } from '@meghjs/core';
-import { InjectRepository, PaginatedRepository } from '@meghjs/data';
-import { User } from '../models/user';
+import { AppService, type CreateInput, type PageRequest, type UpdateInput } from '@meghjs/core';
+import { User } from '../models/user.model';
 
 @AppService
 export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: PaginatedRepository<User>,
-  ) {}
-
   findAll() {
-    return this.userRepository.find();
+    return User.query().orderBy('id').get();
   }
 
-  paginate(page = 1, perPage = 10) {
-    return this.userRepository.paginate({ page, perPage });
+  /** One page of users: `{ data, meta }`. */
+  paginate(request: PageRequest = {}) {
+    return User.query().orderBy('id').paginate(request);
   }
 
-  findByPk(id: number) {
-    return this.userRepository.findOneBy({ id });
+  /** The user with this id; throws a 404 when there is none. */
+  findOrFail(id: number) {
+    return User.findOrFail(id);
   }
 
-  create(body: Partial<User>) {
-    const user = this.userRepository.create(body);
-    return this.userRepository.save(user);
+  create(input: CreateInput<typeof User>) {
+    return User.create(input);
   }
 
-  async update(id: number, body: Partial<User>) {
-    const result = await this.userRepository.update({ id }, body);
-    return (result.affected ?? 0) > 0;
+  /** `save()` writes only the columns that changed. */
+  async update(id: number, changes: UpdateInput<User>) {
+    const user = await User.findOrFail(id);
+    // A DTO instance holds `undefined` for every field that was not sent.
+    const sent = Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined));
+    return user.fill(sent).save();
   }
 
   async delete(id: number) {
-    const result = await this.userRepository.delete({ id });
-    return (result.affected ?? 0) > 0;
+    const user = await User.findOrFail(id);
+    await user.delete();
   }
 }
 ```
 
-```ts [models/user.ts]
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+```ts [models/user.model.ts]
+import { Model, Table, PrimaryKey, AutoIncrement, Column, CreatedAt, UpdatedAt } from '@meghjs/core';
 
-@Entity({ name: 'user' })
-export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+@Table('users')
+export class User extends Model {
+  @PrimaryKey()
+  @AutoIncrement()
+  id?: number;
 
   @Column()
-  name: string;
+  name!: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column({ unique: true })
+  email!: string;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @CreatedAt()
+  created_at?: Date;
+
+  @UpdatedAt()
+  updated_at?: Date;
 }
 ```
 :::
 
-See [Database](/advanced/database) for connecting the datasource.
+`findOrFail` throws a 404 on its own, so the controller needs no
+`HttpExceptions.notFound` check. See [MeghORM](/advanced/orm) for connecting the
+database, and [Queries](/advanced/orm/queries) for what models can do.
+
+## Global prefix and versioning
+
+`setGlobalPrefix` serves every controller and inline route under a prefix.
+Health routes and the API docs page keep their own paths; `exclude` leaves
+more routes alone (paths as declared, or RegExps):
+
+```ts
+app.setGlobalPrefix('/api', { exclude: ['/status'] });
+// @ApiController('/users') @Get('/')  →  GET /api/users
+```
+
+`useVersioning` serves controllers under API versions. Mark a controller or
+a route with `@Version()` (or `@ApiController({ path, version })`); a route's
+version overrides its controller's:
+
+```ts
+import { ApiController, Get, Version } from '@meghjs/core';
+
+@Version('2')
+@ApiController('/users')
+export class UsersV2Controller {
+  @Get('/')
+  list() { ... }
+
+  @Get('/export')
+  @Version(['1', '2'])  // served for both versions
+  export() { ... }
+}
+```
+
+| Option | Requests look like |
+|--------|--------------------|
+| `{ type: 'uri' }` | `GET /api/v2/users`. `prefix` changes the `v` |
+| `{ type: 'header' }` | `GET /api/users` with `X-API-Version: 2`. `header` changes the header name |
+
+`defaultVersion` is the version of controllers without `@Version()`. With
+header versioning it is also used when a request sends no version header.
+Without a default, unversioned controllers keep their plain path.
+
+```ts
+app.useVersioning({ type: 'uri', defaultVersion: '1' });
+```
+
+Inline routes (`app.mapGet`, ...) get the global prefix but are not
+versioned.
 
 ## Throwing errors
 

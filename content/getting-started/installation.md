@@ -1,13 +1,13 @@
 ---
 title: Installation
-description: Megh installation
+description: Creating a Megh project with the CLI, or setting one up by hand.
 ---
 
 # Installation
 
 Megh requires **Node.js 22 or newer**.
 
-## Using Cli
+## Using the CLI
 
 If you already installed @meghjs/cli globally then run the following command:
 
@@ -30,7 +30,7 @@ yarn dlx @meghjs/cli new myapi
 :::
 
 The CLI asks which package manager to use and which features to include —
-OpenAPI docs, CORS, TypeORM, Knex and Scalar UI — then scaffolds the project and
+OpenAPI docs, CORS and MeghORM — then scaffolds the project and
 installs its dependencies.
 
 ```sh
@@ -63,7 +63,7 @@ myapi/
 | `start` | Start the production server |
 | `test` | Run unit tests |
 
-## Manual
+## Manual setup
 
 Go to your desired project directory and run the following commands:
 
@@ -101,7 +101,8 @@ yarn tsc --init
 :::
 
 Since 0.3, `class-validator` and `class-transformer` are peer dependencies. The
-package loads them at import time, so install them in every project.
+package loads them at import time, so install them in every project, even if
+your DTOs use Megh's own [validation decorators](/core-concept/validation).
 
 Ensure `experimentalDecorators` and `emitDecoratorMetadata` are enabled in
 tsconfig.json — Megh's decorators do not work without them.
@@ -147,9 +148,10 @@ imports, and you get a clear install hint the moment a feature needs one:
 | Static files (`useStaticFiles`) | `@fastify/static` |
 | OpenAPI with Swagger UI | `@fastify/swagger`, `@fastify/swagger-ui` |
 | OpenAPI with Scalar | `@fastify/swagger`, `@scalar/fastify-api-reference` |
-| Models and migrations (`useDatabase`) | `kysely` + a driver (`pg`, `mysql2`, `better-sqlite3`) |
-| TypeORM | `typeorm` + a driver (`pg`, `mysql2`, `sqlite3`, `better-sqlite3`, `mssql`) |
-| Knex | `knex` + a driver |
+| `@IsUUID`, `@IsUrl`, `@IsEmail(options)` | `validator` |
+| Models and migrations (`useMeghORM`) | a driver: `pg`, `mysql2`, `better-sqlite3`, or `tedious` + `tarn` |
+| TypeORM (alternative to MeghORM) | `@meghjs/data`, `typeorm` + a driver (`pg`, `mysql2`, `sqlite3`, `better-sqlite3`, `mssql`) |
+| Knex (alternative to MeghORM) | `@meghjs/data`, `knex` + a driver |
 | Queues | `bullmq`, `ioredis` (not needed with the `memory`/`sync` drivers) |
 | Redis cache | `ioredis` |
 | Websockets | `socket.io`, `fastify-socket.io` |

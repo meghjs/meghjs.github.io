@@ -95,10 +95,31 @@ export class ChatService {
 | `retry` | Attempts on failure |
 | `retryDelay` | Base delay in ms; backs off per attempt |
 
+## Authentication
+
+With `app.useAuthentication(Handler)` registered, the same handler runs once
+on each Socket.IO handshake. What it returns becomes `socket.data.user`:
+
+- a user: the socket is connected as that user;
+- `null` or `undefined`: the socket connects as a guest, and
+  `@PrivateChannel` listeners ignore it;
+- a thrown error: the connection is refused, and the client's
+  `connect_error` has the message `Unauthorized`.
+
+The handler gets a request-shaped object: the handshake `headers`, `query`,
+`auth` and `ip`. Browsers can't set headers on a WebSocket, so a token sent
+as `auth.token` arrives as `authorization: Bearer <token>`, and a handler
+that reads the HTTP header works unchanged:
+
+```ts [client]
+const socket = io('https://api.example.com', { auth: { token } });
+```
+
 ## Private channels
 
 `@PrivateChannel` restricts a subscriber method to a channel derived from the
-connecting socket — use it for per-user streams:
+connecting socket — use it for per-user streams. Its listeners only run for
+sockets with a `socket.data.user`:
 
 ```ts
 import { AppService, Subscribe, PrivateChannel } from '@meghjs/core';
@@ -129,8 +150,8 @@ io.emit('ping', Date.now());
 enabled. Resolving it during module load will fail.
 :::
 
-Use `MeghContainer`, not `typedi` directly. Megh may replace the underlying
-container in a future release.
+Resolve services through `MeghContainer`. Megh has its own container and no
+longer installs `typedi`.
 
 ## Broadcasting events
 

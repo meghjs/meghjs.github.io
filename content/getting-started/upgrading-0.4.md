@@ -105,7 +105,7 @@ metadata. Existing projects are not changed.
 
 ## What's new
 
-- [Lifecycle hooks](/getting-started/usage#lifecycle-hooks): `app.onInit`,
+- [Lifecycle hooks](/getting-started/application#lifecycle-hooks): `app.onInit`,
   `app.onReady`, `app.onClose`, and `app.close()` for a clean shutdown.
 - [Plugins](/advanced/plugins): packages can add `app.use*` methods, services
   and hooks, and are found automatically once installed.
@@ -115,9 +115,9 @@ metadata. Existing projects are not changed.
 - [MeghORM](/advanced/orm): type-safe models built on Kysely, with
   relations and eager loading, timestamps, soft deletes, casts and
   transactions. Connect them with `app.useDatabase(db)`.
-- [Migrations](/advanced/orm#migrations): `avleon make:migration` and the
+- [Migrations](/advanced/orm/migrations): `avleon make:migration` and the
   `migrate`, `migrate:status`, `migrate:rollback`, `migrate:reset` and
-  `migrate:refresh` [commands](/cli/basic#migrations).
+  `migrate:refresh` [commands](/cli/database#migrations).
 - The generated [OpenAPI](/microservices/openapi) spec now documents request
   bodies.
 

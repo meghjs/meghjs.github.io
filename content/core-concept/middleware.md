@@ -67,18 +67,13 @@ export default app;
 
 ### Controller scoped
 
-::: warning
-In 0.3.0, passing a middleware **class** to `@UseMiddleware` crashes
-`app.run()`. Pass an instance, as in the examples below, until this is fixed.
-:::
-
 Runs for every route on that controller:
 
 ```ts
 import { ApiController, Get, UseMiddleware } from '@meghjs/core';
 import { LoggerMiddleware } from '../middlewares/logger.middleware';
 
-@UseMiddleware(new LoggerMiddleware())
+@UseMiddleware(LoggerMiddleware)
 @ApiController('/home')
 export class HomeController {
   @Get()
@@ -98,7 +93,7 @@ import { LoggerMiddleware } from '../middlewares/logger.middleware';
 
 @ApiController('/home')
 export class HomeController {
-  @UseMiddleware(new LoggerMiddleware())
+  @UseMiddleware(LoggerMiddleware)
   @Get()
   sayHello() {
     return 'Hello';
@@ -106,11 +101,18 @@ export class HomeController {
 }
 ```
 
-`UseMiddleware` also accepts an array:
+A class is resolved through the DI container when the route is registered, so
+it can use constructor injection. You can also pass an instance, for example to
+give it settings. `UseMiddleware` also accepts an array, and both forms can be
+mixed:
 
 ```ts
-@UseMiddleware([new LoggerMiddleware(), new ApiKeyMiddleware()])
+@UseMiddleware([LoggerMiddleware, new RateLimitMiddleware(100)])
 ```
+
+::: tip
+Passing a class to `@UseMiddleware` crashed `app.run()` before 0.5.2.
+:::
 
 ::: info
 `@UseMiddleware` must sit above `@ApiController` on a class, and above the route
@@ -122,10 +124,20 @@ decorator on a method — decorators apply bottom-up.
 Each request passes through these stages:
 
 1. Global middlewares (`useMiddlewares`)
-2. Authentication (sets `request.user`)
-3. Class `@Authorized`, then method `@Authorized`
-4. Class `@UseMiddleware`, then method `@UseMiddleware`
+2. Class `@UseMiddleware`, then method `@UseMiddleware`
+3. Authentication (sets `request.user`)
+4. Class `@Authorized`, then method `@Authorized`
 5. Parameter and DTO validation
 6. The route handler
 
-See [Authentication](/core-concept/authentication) for steps 2 and 3.
+Middleware runs before authentication, so it can reject a request early (an
+API key check, an IP allowlist) but cannot read `request.user`. Put checks
+that need the user in an authorization handler. Inline routes follow the
+same order.
+
+::: warning Changed in 0.5.5
+`@UseMiddleware` used to run after `@Authorized`. See
+[Upgrading to 0.5.5](/getting-started/upgrading-0.5#breaking-in-0-5-5).
+:::
+
+See [Authentication](/core-concept/authentication) for steps 3 and 4.

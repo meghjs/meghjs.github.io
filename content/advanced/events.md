@@ -9,6 +9,12 @@ Events let one part of your application announce that something happened
 without knowing who reacts to it. Megh's event system is typed, supports
 synchronous, delayed and queued delivery, and can broadcast over Socket.IO.
 
+::: tip Generate them
+`npx megh make:event UserCreated` and
+`npx megh make:listener SendWelcomeEmail --event UserCreated` write both
+files. See [Generators](/cli/generators#events).
+:::
+
 ## Defining an event
 
 An event extends `MeghEvent<TPayload>`. The payload type is yours; the base

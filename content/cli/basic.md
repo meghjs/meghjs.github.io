@@ -1,9 +1,9 @@
 ---
-title: Megh Commands
-description: Useful commands
+title: CLI
+description: "The megh command: create, run and build apps, generate code and manage the database."
 ---
 
-# Megh Commands
+# CLI
 
 Install the CLI globally, or run it with `npx`:
 
@@ -18,20 +18,61 @@ npm i -g @meghjs/cli
 | `new` | | Create a new application |
 | `serve` | | Start the dev server with watch + rebuild |
 | `build` | | Compile using `tsconfig.build.json` |
-| `make:model` | `m:m` | Create an ORM model (columns from its migrations) or TypeORM entity |
+| `make:model` | `m:m` | Create a model: a plain class, a MeghORM model with `--orm` (columns from its migrations), or a TypeORM entity with `--typeorm` |
+| `sync:model` | `s:m` | Sync an existing model's columns with its migrations (was `update:model`) |
 | `make:resource` | `m:r` | Create a REST resource for a model: DTOs, CRUD service and controller |
 | `make:controller` | `m:c` | Create a controller |
 | `make:service` | `m:s` | Create a service |
 | `make:config` | `m:cnf` | Create a config class |
 | `make:middleware` | `m:mlwr` | Create a middleware |
+| `make:mail` | `m:mail` | Create a Mailable in `src/mail/` |
+| `make:event` | `m:ev` | Create an event in `src/events/` |
+| `make:listener` | `m:lsn` | Create an event listener in `src/listeners/` (`--event` to type it) |
+| `make:queue` | `m:q` | Create a queue with a job handler in `src/queues/` |
+| `make:worker` | `m:w` | Create a worker for a queue in `src/workers/` |
+| `make:task` | `m:task`, `make:scheduler` | Create a scheduled task in `src/tasks/` (`--cron`, `--interval`) |
+| `make:dto` | `m:dto` | Create a class-validator DTO in `src/dtos/` |
+| `make:class` | `m:cls` | Create a plain class in `src/classes/` |
+| `make:test` | `m:t` | Create a unit test (`<name>.spec.ts`) for an existing file |
 | `make:migration` | `m:mig` | Create a database migration |
-| `migrate` | | Run pending migrations |
+| `make:seeder` | `m:sd` | Create a database seeder |
+| `make:factory` | `m:f` | Create a model factory with Faker values |
+| `migrate` | | Run pending migrations (`--seed` to seed afterwards) |
 | `migrate:status` | | Show which migrations have run |
 | `migrate:rollback` | | Undo the last migration (`--step <n>` for more) |
 | `migrate:reset` | | Undo every migration |
-| `migrate:refresh` | | Undo every migration, then run them all again |
+| `migrate:refresh` | | Undo every migration, then run them all again (`--seed` too) |
+| `db:seed` | | Run the seeders (`--seeder <name>` for one) |
+| `scaffold:domain` | `sc:domain` | Create the tables and models (or resources) of a business domain |
+| `scaffold:auth` | `sc:auth` | Add sign-up and sign-in with JWTs and/or API keys, optionally with roles |
+| `scaffold:rbac` | `sc:rbac` | Add roles and permissions to an app's users |
+| `template:list` | `templates` | List the model templates |
 
 Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
+The generators except `make:model` and the database ones (`make:migration`,
+`make:seeder`, `make:factory`) also write a unit test next to the file; pass
+`--notest` (or `-nt`) to skip it. See [Tests](/cli/generators#tests).
+`make:model` and `make:resource` also build the table from a
+[template](/cli/scaffold/templates) with `--template` or `--fields`.
+
+## Pages
+
+| Page | Commands |
+|---|---|
+| [Generators](/cli/generators) | `make:resource`, `make:controller`, `make:service`, `make:model`, `sync:model`, `make:middleware`, `make:config`, `make:mail`, `make:event`, `make:listener`, `make:queue`, `make:worker`, `make:task`, `make:dto`, `make:class`, `make:test` |
+| [Database Commands](/cli/database) | `make:migration`, `migrate*`, `make:seeder`, `db:seed`, `make:factory` |
+| [Scaffold](/cli/scaffold/) | `--template`, `--fields`, `scaffold:domain`, `scaffold:auth`, `scaffold:rbac`, `template:list` |
+
+## Version and info
+
+```sh
+npx megh -v       # the Megh logo and the CLI version (also --version)
+npx megh --info   # the logo, CLI, Node.js and OS versions, and the project's Megh packages
+```
+
+The logo appears only here; `megh --help` and the other commands print
+without it. `--info` also shows the installed `@meghjs/core`, `@meghjs/data`
+and TypeScript versions when run inside an app: paste it into a bug report.
 
 ## Application
 
@@ -39,8 +80,22 @@ Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 npx @meghjs/cli new myapi
 ```
 
-You are prompted for a package manager and optional features — OpenAPI docs,
-CORS, TypeORM, Knex and Scalar UI. Then:
+You are prompted for a package manager and optional features: OpenAPI docs,
+CORS and MeghORM. With MeghORM you also pick the database. Add
+[Mail](/advanced/mail#setting-it-up), Scalar UI or the
+[`@meghjs/data`](/advanced/database) plugin afterwards. Non-interactively:
+
+```sh
+npx @meghjs/cli new myapi --yes --database postgres   # also: mysql, sqlite, mssql
+```
+
+`--database` (or the `orm` feature, which defaults to SQLite) installs the
+driver, adds `app.useMeghORM()` to `src/app.ts`, writes `DATABASE_URL` to
+`.env` and creates `src/database/migrations/`.
+
+The new project is put under git with `git init`, unless git isn't installed
+or the folder is already inside a repository. Pass `--skip-git` (or set
+`MEGH_SKIP_GIT=1`) to skip it. Then:
 
 ```sh
 cd myapi
@@ -56,183 +111,10 @@ npx megh serve
 Compiles `src/` with SWC into `dist/`, starts the app and restarts it on change.
 The entry point comes from `megh.entry` in `package.json`, falling back to `main`.
 
-## Resource
-
-```sh
-npx megh make:resource user
-# shorthand
-npx megh m:r user
-```
-
-Generates a complete REST resource for a [Megh ORM](/advanced/orm) model:
-
-| File | Contents |
-|------|----------|
-| `src/models/user.model.ts` | Reused if it exists; otherwise built from the migration that creates `users` (as `make:model` does) |
-| `src/dtos/user.dto.ts` | `CreateUserDto`, `UpdateUserDto` (every field optional) and `ListUsersQuery` (`page`, `perPage`) |
-| `src/services/user.service.ts` | `findAll`, `paginate`, `find`, `findOrFail`, `create`, `update`, `delete` |
-| `src/controllers/user.controller.ts` | `GET /users`, `GET /users/:id`, `POST /users`, `PUT /users/:id`, `DELETE /users/:id` |
-
-The DTO validators come from the model's fields and the migration's column
-types: `varchar(255)` gets `@MaxLength(255)`, an `email` column `@IsEmail()`,
-nullable columns and columns with a default are optional, and the generated
-primary key and timestamps are left out. A missing row gives a 404.
-
-If there is neither a model nor a migration for the table, nothing is
-written; create the migration first (`megh make:migration create_users_table`).
-Use `--table <name>` when the table name isn't the plural snake_case name, and
-`-f` to overwrite existing DTO, service and controller files. Nested names
-work too: `megh m:r admin/user` serves `/admin/users`.
-
-If the model is a TypeORM entity, the service uses its repository and no DTOs
-are generated.
-
-Register the controller in your app:
-
-```ts
-app.useControllers([UserController]);
-```
-
-## Controller
-
-```sh
-npx megh make:controller user
-# shorthand
-npx megh m:c user
-```
-
-Pass `-r` for a full REST skeleton, and `-m <model>` to bind it to a model:
-
-```sh
-npx megh m:c user -m user -r
-```
-
-With `-m`, the controller is generated like [`make:resource`](#resource): the model's
-DTOs, service and model (from its migration) are created if missing, and the
-controller delegates to the service. Add `--orm` to back that service with a
-TypeORM repository instead.
-
-Use `-rt <dir>` to place the file under a different directory, and `--base-path`
-to emit `@ApiController` without a route prefix.
-
-## Service
-
-```sh
-npx megh make:service user
-```
-
-A resource service uses the [Megh ORM](/advanced/orm) model (generated from its
-migration if it doesn't exist yet):
-
-```sh
-npx megh make:service user -m user -r
-```
-
-Add `--orm` for one backed by a TypeORM repository:
-
-```sh
-npx megh make:service user -m user -r --orm
-```
-
-## Model
-
-```sh
-# Megh ORM model
-npx megh make:model user
-npx megh make:model user --table app_users   # table name other than "users"
-
-# TypeORM entity
-npx megh m:m user --orm
-```
-
-`make:model` writes a [Megh ORM](/advanced/orm) model. It looks for the
-model's table (by default the plural snake_case name: `User` → `users`,
-`BlogPost` → `blog_posts`) in your migrations. If one creates it, the model
-gets a field for every column, with its type, nullability and casts, plus
-`primaryKey`, `generated`, `timestamps` and `softDeletes` as needed. Later
-migrations that add, drop or rename columns are taken into account:
-
-```ts
-// Columns read from the migrations (the table is created in 20260101000000_create_users_table.ts).
-export class User extends Model {
-  static readonly table = "users";
-  static readonly timestamps = true;
-  static readonly casts = {
-    is_admin: "boolean",
-  } as const;
-
-  id!: number;
-  email!: string;
-  name!: string | null;
-  is_admin!: boolean;
-  created_at!: Date;
-  updated_at!: Date;
-}
-```
-
-If no migration creates the table, you get a model with placeholder columns
-to fill in. The migrations are read, not run, so no database is needed.
-Relations aren't generated; add them yourself.
-
-## Middleware
-
-```sh
-npx megh make:middleware auth
-```
-
-Generates a class extending `MeghMiddleware`:
-
-```ts [src/middlewares/auth.middleware.ts]
-import { AppMiddleware, MeghMiddleware, IRequest, IResponse } from '@meghjs/core';
-
-@AppMiddleware
-export class AuthMiddleware extends MeghMiddleware {
-  async invoke(req: IRequest, res?: IResponse) {
-    // your logic goes here
-    return req;
-  }
-}
-```
-
-## Config
-
-```sh
-npx megh make:config jwt
-```
-
-Generates a class extending `MeghConfig` and registered with `@AppConfig`:
-
-```ts [src/config/jwt.config.ts]
-import { AppConfig, MeghConfig, Environment } from '@meghjs/core';
-
-@AppConfig
-export class JwtConfig extends MeghConfig {
-  config(env: Environment) {
-    return {};
-  }
-}
-```
-
-## Migrations
-
-```sh
-npx megh make:migration create_users_table
-npx megh migrate
-```
-
-`make:migration` writes `src/database/migrations/<timestamp>_<name>.ts`.
-A `create_<table>_table` name gives a create-table migration, and
-`add_<x>_to_<table>_table` an alter-table one; `--create <table>` and
-`--table <table>` choose explicitly.
-
-The `migrate` commands load the Kysely instance exported from
-`src/database/connection.ts`. Set `megh.database` and `megh.migrations` in
-`package.json` to use other paths. See [MeghORM: Migrations](/advanced/orm#migrations).
-
 ## Build
 
 ```sh
 npx megh build
 ```
 
-Removes `dist/` and compiles the project with `tsconfig.build.json`.
+Removes the output folder (`outDir`, usually `dist/`) and compiles the project with `tsconfig.build.json`.
