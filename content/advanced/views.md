@@ -93,7 +93,7 @@ const inline = getViewEngine().renderString("Hi {{ name }}", { name: "Ana" });
 | `@break` `@continue` / `@break(cond)`                                                              | Loop control                                             |
 | `@js(const x = 1)` / `@js … @endjs`                                                                | Raw JS (Blade's `@php`)                                  |
 | `@json(value)`                                                                                     | JSON that's safe inside `<script>`                       |
-| `@csrf` `@method('PUT')`                                                                           | Hidden form inputs (`@csrf` reads `csrfToken`)           |
+| `@csrf` `@method('PUT')`                                                                           | Hidden form inputs (`@csrf` reads `csrfToken`), see [Forms](#forms) |
 | `@include('partials.nav', { extra })`                                                              | Render another view                                      |
 | `@extends('layouts.app')`                                                                          | Use a layout                                             |
 | `@section('name')` … `@endsection` / `@section('title', 'Home')`                                   | Define a section                                         |
@@ -225,6 +225,66 @@ browser could not load it.
 Islands render in the browser only. The server sends an empty element, so the
 content appears once the scripts load. If your Content Security Policy blocks
 inline scripts, allow them for these pages, for example with a nonce.
+:::
+
+## Forms
+
+A browser form can only send GET or POST. To reach a PUT, PATCH or DELETE
+route, turn on method override and add `@method()` to the form:
+
+```ts [app.ts]
+app.useMethodOverride();
+```
+
+```html [views/todos/show.megh.html]
+<form method="post" action="/todos/{{ todo.id }}">
+  @csrf
+  @method('DELETE')
+  <button>Delete</button>
+</form>
+```
+
+The form POSTs with a hidden `_method` field, and Megh routes the request to
+`@Delete('/:id')`. Only `PUT`, `PATCH` and `DELETE` are accepted, and only from
+the body of a form POST: `application/x-www-form-urlencoded` or
+`multipart/form-data`. A `_method` in a query string or a JSON body is ignored.
+
+`useMethodOverride()` also parses urlencoded bodies for `@Body()`, unless you
+registered a parser for that type yourself. The hidden `_method` and `_token`
+fields are removed from the parsed body, so your DTO does not need to declare
+them.
+
+### File uploads
+
+For a form with a file input, add `enctype="multipart/form-data"`, call
+`app.useMultipart()`, and put `@method()` **before** the file input:
+
+```html
+<form method="post" action="/todos/{{ todo.id }}" enctype="multipart/form-data">
+  @csrf
+  @method('PUT')
+  <input name="title" value="{{ todo.title }}">
+  <input name="photo" type="file" accept="image/*">
+  <button>Save</button>
+</form>
+```
+
+```ts
+@Put('/:id')
+async update(@Param('id') id: number, @Body() body: any, @UploadFile('photo') photo: MultipartFile | null) {
+  const title = body.title?.value;
+  // ...
+}
+```
+
+To find `_method`, Megh reads only the text fields that come before the first
+file, at most 64 KB, and never reads the upload into memory. A `_method` placed
+after a file input is ignored, and the request stays a POST.
+
+::: info
+On multipart routes `@Body()` holds the `@fastify/multipart` parts
+(`body.title.value`), and DTO validation does not run. Validate the fields
+yourself; [File Uploads](/advanced/file-uploads) covers saving the file.
 :::
 
 ## Custom directives

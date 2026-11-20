@@ -65,6 +65,7 @@ calls chain.
 | `useMultipart(options?: any)` | Enable multipart bodies through `@fastify/multipart`. Defaults: `attachFieldsToBody: true`, 10 MB file size limit. |
 | `useStaticFiles(options?: any)` | Serve static files through `@fastify/static`. |
 | `useCompression(options?: CompressionOptions)` | Compress responses through `@fastify/compress`. |
+| `useMethodOverride()` | Route a form POST with `_method=PUT\|PATCH\|DELETE` (urlencoded or multipart) to that method's route, and parse urlencoded bodies. Throws if called twice. See [Views](/advanced/views#forms). |
 | `setGlobalPrefix(prefix: string, options?: { exclude?: (string \| RegExp)[] })` | Serve controller and inline routes under `prefix`. |
 | `useVersioning(options: VersioningOptions)` | Version controller routes by URI (`/v1/...`) or header. |
 | `useEnvSchema(schema: Constructor)` | Validate environment variables against a DTO class at boot. |
