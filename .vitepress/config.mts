@@ -26,6 +26,7 @@ export default defineConfig({
         text: 'v0.6.5',
         items: [
           { text: 'Upcoming changes', link: '/getting-started/upgrading-next' },
+          { text: 'Upgrading to 0.7', link: '/getting-started/upgrading-0.7' },
           { text: 'Upgrading to 0.6', link: '/getting-started/upgrading-0.6' },
           { text: 'Upgrading to 0.5.5', link: '/getting-started/upgrading-0.5' },
           { text: 'Moving from Avleon', link: '/getting-started/upgrading-megh' },
@@ -141,6 +142,7 @@ export default defineConfig({
         collapsed: true,
         items: [
           { text: 'Upcoming changes', link: '/getting-started/upgrading-next' },
+          { text: 'Upgrading to 0.7', link: '/getting-started/upgrading-0.7' },
           { text: 'Upgrading to 0.6', link: '/getting-started/upgrading-0.6' },
           { text: 'Upgrading to 0.5.5', link: '/getting-started/upgrading-0.5' },
           { text: 'Moving from Avleon', link: '/getting-started/upgrading-megh' },

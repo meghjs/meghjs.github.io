@@ -155,6 +155,7 @@ imports, and you get a clear install hint the moment a feature needs one:
 | Queues | `bullmq`, `ioredis` (not needed with the `memory`/`sync` drivers) |
 | Redis cache | `ioredis` |
 | Websockets | `socket.io`, `fastify-socket.io` |
+| `@react` islands in [views](/advanced/views#react) | `@swc/core` |
 | Image transforms | `sharp` |
 | Pretty dev logs | `pino-pretty` (dev dependency) |
 

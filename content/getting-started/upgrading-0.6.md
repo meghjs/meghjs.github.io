@@ -49,7 +49,8 @@ scripts that run them:
 - **`megh -v` prints the logo, then `Megh v<version>`**, instead of the bare
   version. A script that reads it should match `v(\d+\.\d+\.\d+)` on the
   last line, or use `npm ls @meghjs/cli`. `megh --help` and `megh new` no
-  longer print the logo.
+  longer print the logo. (0.7.0 changes this again: `megh -v` prints only the
+  version. See [Upgrading to 0.7](/getting-started/upgrading-0.7#megh-v-prints-only-the-version).)
 
 ### New
 

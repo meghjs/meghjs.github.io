@@ -25,7 +25,11 @@ features:
   - title: Secure by default
     details: Deny-by-default authorization, confined file storage and production-safe error responses.
   - title: Batteries included
-    details: MeghORM type-safe models and migrations, events, BullMQ queues, scheduling, caching, Socket.IO and structured logging.
+    details: MeghORM type-safe models and migrations, server-rendered views, events, BullMQ queues, scheduling, caching, Socket.IO and structured logging.
+  - title: Ready for AI assistants
+    details: The Megh MCP server gives Claude Code, Cursor and VS Code the Megh docs, a view of your project and the CLI generators.
+    link: /ai/mcp
+    linkText: Set it up
 ---
 
 ## Hello, Megh

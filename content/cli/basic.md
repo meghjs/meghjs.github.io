@@ -67,7 +67,7 @@ The generators except `make:model` and the database ones (`make:migration`,
 ## Version and info
 
 ```sh
-npx megh -v       # the CLI version, e.g. 0.6.5 (also --version)
+npx megh -v       # the CLI version, e.g. 0.7.0 (also --version)
 npx megh --info   # the logo, CLI, Node.js and OS versions, and the project's Megh packages (also -i)
 ```
 
