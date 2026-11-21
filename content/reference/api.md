@@ -71,7 +71,7 @@ calls chain.
 | `useOpenApi(options?: OpenApiUiOptions \| Constructor<MeghConfig<OpenApiUiOptions>>)` | Generate the OpenAPI document and serve the docs page. |
 | `useMiddlewares(middlewares: Constructor<MeghMiddleware>[])` | Register global middleware, run before every route. |
 | `useAuthentication(authentication: Constructor<MeghAuthentication>)` | Register the authentication handler that sets `request.user`. |
-| `useAuthorization(authorization: Constructor<any> \| Record<string, Constructor<any>>)` | Register one authorization handler, or several by name. |
+| `useAuthorization(authorization: Constructor<any> \| Record<string, Constructor<any>>, options?: UseAuthorizationOptions)` | Register one authorization handler, or several by name. `{ default }` protects every route without `@Authorized` or `@Public`. See [Deny by default](/core-concept/authentication#deny-by-default). |
 | `useExceptionFilters(filters: ExceptionFilterLike \| ExceptionFilterLike[])` | Register global exception filters, run in order before the default error response. |
 | `useErrorHandler(handler: ErrorHandlerFunction)` | Register a function filter that sees every error. |
 | `useErrorLogger(logger: ErrorLogger \| false)` | Replace how default error responses are logged, or turn logging off. |
@@ -450,6 +450,8 @@ Guide: [Authentication](/core-concept/authentication).
 | --- | --- | --- |
 | `MeghAuthentication` | abstract class | `authenticate(request: IRequest): TUser \| null \| undefined \| Promise<...>`. The return value becomes `request.user`. Register with `app.useAuthentication()`. |
 | `CanAuthorize` | decorator | `@CanAuthorize`. Mark a class with an `authorize(req, options?)` method as an authorization handler and register it for DI. |
+| `Public` | decorator | `@Public()`. Leave a controller or route out of the `useAuthorization` default. Inline routes use `.public()`. |
+| `UseAuthorizationOptions`, `AuthorizationDefault` | types | `{ default?: 'authenticated' \| true \| AuthorizedOptions }` for `useAuthorization()`. |
 | `Authorized` | decorator | `@Authorized()`, `@Authorized(name: string)` or `@Authorized({ name?, ...options })`. Require authorization on a controller or route. Extra options are passed to `authorize()`. |
 | `AuthorizeClass` | interface | `{ authorize(req: IRequest, options?: any): unknown }`. Return `false` or throw to deny with 403. |
 | `AuthorizedOptions` | type | `string \| { name?: string; [key: string]: any }`. |
