@@ -91,7 +91,7 @@ export class ChatService {
 |--------|-------------|
 | `room` | Emit only to this room |
 | `broadcast` | Exclude the current socket |
-| `transports` | Defaults to `['socket']` |
+| `transports` | Defaults to `['socket']`, the only transport in 1.0. Any other value throws. |
 | `retry` | Attempts on failure |
 | `retryDelay` | Base delay in ms; backs off per attempt |
 
