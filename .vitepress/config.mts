@@ -55,6 +55,7 @@ export default defineConfig({
           { text: 'Validation', link: '/core-concept/validation' },
           { text: 'Error Handling', link: '/core-concept/error-handling' },
           { text: 'Authentication', link: '/core-concept/authentication' },
+          { text: 'Request Context', link: '/core-concept/request-context' },
         ],
       },
       {

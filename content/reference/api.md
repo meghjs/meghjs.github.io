@@ -880,6 +880,9 @@ Guide: [Logging](/advanced/logging).
 | `LoggerConfig` | interface | `{ level?, pretty?, destination? }`. |
 | `buildLoggerOptions` | function | `buildLoggerOptions(config?, env?): pino.LoggerOptions`. The pino options Megh uses. |
 | `getRequestId` | function | `getRequestId(): string \| undefined`. The ID of the request being handled. |
+| `requestContext` | object | Per-request values: `get`, `getOrThrow`, `has`, `set`, `delete`, `user`, `getUser<T>()`, `requestId`, `active`, `run(fn, init?)`. See [Request Context](/core-concept/request-context). |
+| `createContextKey` | function | `createContextKey<T>(name): ContextKey<T>`. A typed key for `requestContext`. |
+| `ContextKey`, `RequestContextInit` | types | A typed key, and `{ requestId?, user?, values? }` for `requestContext.run()`. |
 | `DEFAULT_REQUEST_ID_HEADER` | const | `"x-request-id"`. |
 | `RequestIdOptions` | type | `false \| { header?, generate? }`, for the `requestId` application option. |
 
