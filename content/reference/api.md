@@ -421,6 +421,8 @@ Guide: [Dependency injection](/core-concept/dependency-injection).
 | `Utility` | decorator | Alias of `Injectable`: `@Utility()`. |
 | `Helper` | decorator | Alias of `Injectable`: `@Helper()`. |
 | `inject` | function | `inject<T>(id: ServiceIdentifier<T>, options?: InjectOptions): T`. Resolve a dependency, usually in a field initializer. With `{ optional: true }` it returns `undefined` when nothing is registered. |
+| `Inject` | decorator | `@Inject(id, options?: InjectOptions)`. Inject a token, string or class into a constructor parameter or property, for interface, union and primitive types. |
+| `Optional` | decorator | `@Optional()`. Inject `undefined` into a constructor parameter that can't be resolved, instead of failing. |
 | `createInjectDecorator` | function | `createInjectDecorator(factory: () => unknown)`. Build a property or parameter decorator that injects `factory()`. |
 | `MeghContainer` | const | The container: `get(id)`, `set(id, value)`, `has(id)`, `reset()`. |
 | `Token` | class | `new Token<T>(name?: string)`. A typed identifier for values that aren't classes. |
