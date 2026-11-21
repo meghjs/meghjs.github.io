@@ -93,9 +93,30 @@ export class UserService {
 ```
 
 This needs `experimentalDecorators` and `emitDecoratorMetadata` in
-`tsconfig.json`, which `megh new` projects have. Parameters typed as
-interfaces, unions or primitives (`string`, `number`) have no runtime type to
-resolve, so they're left `undefined`. Use a [token](#tokens) for those.
+`tsconfig.json`, which `megh new` projects have.
+
+Parameters typed as interfaces, unions or primitives (`string`, `number`)
+have no runtime type to resolve: TypeScript emits `Object` or `String` for
+them. Building such a class fails with a `ContainerError` that names the
+parameter. Inject a [token](#tokens) with `@Inject`, or mark the parameter
+`@Optional()` to get `undefined`:
+
+```ts
+import { AppService, Inject, Optional } from '@meghjs/core';
+import { PAYMENTS, type PaymentGateway } from './tokens';
+
+@AppService
+export class OrderService {
+  constructor(
+    @Inject(PAYMENTS) private readonly gateway: PaymentGateway,
+    @Optional() private readonly audit?: AuditLog, // undefined unless registered
+  ) {}
+}
+```
+
+`@Inject(id, { optional: true })` injects `undefined` when nothing is
+registered for `id`. `@Optional()` on a class-typed parameter injects the
+instance when the class is registered, and `undefined` when it isn't.
 
 Both styles resolve the same shared instances, and you can mix them in a
 class.
@@ -168,6 +189,18 @@ Cannot construct UserService -> MailerService: SmtpClient is not registered.
 Mark it with @Injectable() (or @AppService), or register an instance with
 MeghContainer.set(SmtpClient, value).
 ```
+
+A parameter with no type to resolve fails when the class is first built,
+instead of injecting `undefined`:
+
+```
+Cannot resolve parameter 0 of OrderService: its type is an interface, union
+or primitive (emitted as Object). Use @Inject(TOKEN) on the parameter or
+inject(TOKEN) in a field, type it as a class, or mark it @Optional().
+```
+
+A class-typed parameter can also show up as `Object` when two files import
+each other: the class isn't loaded yet when TypeScript emits the type.
 
 Two services that need each other while being built are reported instead of
 overflowing the stack:
