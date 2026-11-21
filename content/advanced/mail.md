@@ -122,6 +122,14 @@ An address can be written as `'ann@example.com'`, `'Ann <ann@example.com>'` or
 `{ name: 'Ann', address: 'ann@example.com' }`. Addresses, subjects and headers
 that contain a line break are rejected, so user input cannot inject headers.
 
+Each address must be a single `local@domain`. Megh rejects one that contains
+a space, `,`, `;`, `<`, `>` or `"`, such as `'ann@example.com, evil@example.com'`,
+so an address taken from user input (a password reset, an invite, a contact
+form) can't add a second recipient. Pass several addresses as separate
+arguments instead: `to('ann@example.com', 'lee@example.com')`. A display name
+with a comma must be quoted (`'"Lee, Ann" <ann@example.com>'`) or given as an
+object.
+
 ### Inline images
 
 Give the attachment a `cid` and use it in the HTML:

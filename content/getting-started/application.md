@@ -40,7 +40,7 @@ ignored. Pass every option in the first call.
 const app = Megh.createApplication({
   server: {
     bodyLimit: 2 * 1024 * 1024, // 2 MB
-    trustProxy: true,           // behind a load balancer
+    trustProxy: 1,              // one load balancer in front; never `true`
   },
 });
 ```
