@@ -85,11 +85,11 @@ const inline = getViewEngine().renderString("Hi {{ name }}", { name: "Ana" });
 | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | `{{ expr }}`                                                                                       | Echo, HTML-escaped. `expr` is any JS expression          |
 | `{!! expr !!}`                                                                                     | Echo raw (unescaped). Only use it on trusted HTML        |
-| `{{-- comment --}}`                                                                                | Removed at compile time                                  |
+| `{{-- comment --}}`                                                                                | Removed at compile time, tags inside it included        |
 | `@{{ x }}` / `@@if`                                                                                | Literal `{{ x }}` / `@if` (for Vue/Alpine)               |
 | `@if(c)` `@elseif(c)` `@else` `@endif`                                                             | Conditionals                                             |
 | `@unless(c)` … `@endunless`                                                                        | `if (!c)`                                                |
-| `@isset(a.b.c)` … `@endisset`                                                                      | True if the path exists and isn't null. Never throws     |
+| `@isset(a.b.c)` … `@endisset`                                                                      | True if the path exists and isn't null. Never throws. Takes `@else` / `@elseif` |
 | `@foreach(items as item)` / `@foreach(obj as key => value)`                                        | Arrays, Maps, Sets, iterables and plain objects          |
 | `loop.index` `.iteration` `.first` `.last` `.count` `.remaining` `.even` `.odd` `.depth` `.parent` | Like Blade's `$loop`                                     |
 | `@for(let i = 0; i < 3; i++)` … `@endfor`, `@while(c)` … `@endwhile`                               | Plain JS loops                                           |
