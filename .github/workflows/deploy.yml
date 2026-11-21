@@ -1,3 +1,5 @@
+# Runs in meghjs/meghjs.github.io, not in this repo: `npm run mirror`
+# (scripts/mirror.sh) pushes docs/ there as the repo root. Keep it here.
 # https://github.com/actions/deploy-pages#usage
 name: Deploy to GitHub Pages
 on:
