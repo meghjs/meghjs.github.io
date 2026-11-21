@@ -67,12 +67,12 @@ The generators except `make:model` and the database ones (`make:migration`,
 ## Version and info
 
 ```sh
-npx megh -v       # the Megh logo and the CLI version (also --version)
-npx megh --info   # the logo, CLI, Node.js and OS versions, and the project's Megh packages
+npx megh -v       # the CLI version, e.g. 0.6.5 (also --version)
+npx megh --info   # the logo, CLI, Node.js and OS versions, and the project's Megh packages (also -i)
 ```
 
-The logo appears only here; `megh --help` and the other commands print
-without it. `--info` also shows the installed `@meghjs/core`, `@meghjs/data`
+The logo appears only with `--info`; `-v`, `--help` and the other commands
+print without it. `--info` also shows the installed `@meghjs/core`, `@meghjs/data`
 and TypeScript versions when run inside an app: paste it into a bug report.
 
 ## Application
