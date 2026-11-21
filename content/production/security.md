@@ -197,6 +197,10 @@ Things to know:
 
 - **Behind a proxy**, `request.ip` is the proxy's address unless you set
   `trustProxy` (next section). Without it, every client shares one counter.
+  Set it to a hop count or the proxy's address, never `true`: with `true`,
+  clients can send their own `X-Forwarded-For` and get a fresh counter on
+  every request. Megh warns at boot when rate limiting runs with
+  `trustProxy: true`.
 - **Several replicas** each count on their own with the memory store. Pass
   an ioredis client so they share one count:
 
@@ -225,12 +229,16 @@ on plain HTTP inside the network. Tell Fastify to trust the proxy so
 
 ```ts
 const app = Megh.createApplication({
-  server: { trustProxy: true }, // or the proxy's address, e.g. '10.0.0.0/8'
+  server: { trustProxy: 1 }, // one proxy in front; or its address, e.g. '10.0.0.0/8'
 });
 ```
 
-Only trust a proxy that overwrites those headers, or clients can spoof their
-IP. Bind to `127.0.0.1` (`HOST=127.0.0.1`) when the proxy runs on the same
+Don't use `trustProxy: true`. Common proxies, such as nginx with
+`$proxy_add_x_forwarded_for` and AWS ALB, **append** the client's address to
+`X-Forwarded-For` instead of replacing it. With `true`, Fastify takes the
+leftmost entry, which the client wrote, so clients can spoof their IP and
+dodge rate limits. A hop count (the number of proxies you run) or the
+proxies' addresses make Fastify read the entry your own proxy added. Bind to `127.0.0.1` (`HOST=127.0.0.1`) when the proxy runs on the same
 machine. To terminate TLS in Node instead, pass `server.https`.
 
 ### Limit body sizes
