@@ -35,6 +35,9 @@ app.getViews().share("appName", "My App"); // available in every view
 View names use dots: `layouts.app` is `views/layouts/app.megh.html`. Names
 that would leave the views folder (`../secret`) are rejected.
 
+`megh new myapp --mvc` sets all of this up with a layout and a home page, and
+`megh make:view pages.about` adds a page. See [CLI](/cli/basic#application).
+
 ## Returning a view
 
 Return `Results.View` (or the `view` shorthand) from a controller or a

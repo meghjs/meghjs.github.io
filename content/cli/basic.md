@@ -33,6 +33,7 @@ npm i -g @meghjs/cli
 | `make:task` | `m:task`, `make:scheduler` | Create a scheduled task in `src/tasks/` (`--cron`, `--interval`) |
 | `make:dto` | `m:dto` | Create a class-validator DTO in `src/dtos/` |
 | `make:class` | `m:cls` | Create a plain class in `src/classes/` |
+| `make:view` | `m:v` | Create a `.megh.html` view (or `-c` component) in `views/` |
 | `make:test` | `m:t` | Create a unit test (`<name>.spec.ts`) for an existing file |
 | `make:migration` | `m:mig` | Create a database migration |
 | `make:seeder` | `m:sd` | Create a database seeder |
@@ -92,6 +93,18 @@ npx @meghjs/cli new myapi --yes --database postgres   # also: mysql, sqlite, mss
 `--database` (or the `orm` feature, which defaults to SQLite) installs the
 driver, adds `app.useMeghORM()` to `src/app.ts`, writes `DATABASE_URL` to
 `.env` and creates `src/database/migrations/`.
+
+For a server-rendered app, pass `--mvc`:
+
+```sh
+npx @meghjs/cli new myapp --mvc
+```
+
+It adds `app.useViews()` and `app.useMethodOverride()` to `src/app.ts`, a
+layout in `views/layouts/app.megh.html`, a page in `views/pages/home.megh.html`,
+and a `HomeController` that renders it with `Results.View('pages.home', ...)`.
+Add more pages with [`make:view`](/cli/generators#view). See
+[Views](/advanced/views). `--mvc` can't be combined with `--minimal`.
 
 The new project is put under git with `git init`, unless git isn't installed
 or the folder is already inside a repository. Pass `--skip-git` (or set

@@ -329,6 +329,39 @@ export class OrderShippedMail extends Mailable {
 If `src/app.ts` doesn't call `app.useMail()` yet, the command says so. See
 [Mail](/advanced/mail).
 
+## View
+
+```sh
+npx megh make:view pages.about     # or pages/about
+# shorthand
+npx megh m:v pages.about
+```
+
+Writes `views/pages/about.megh.html`, which you render with
+`Results.View('pages.about', data)`. Views live in `views/` at the project
+root, not under `src/`, and no unit test is written. When
+`views/layouts/app.megh.html` exists (as in a `new --mvc` project) the page
+extends it:
+
+```html [views/pages/about.megh.html]
+@extends('layouts.app')
+
+@section('title', 'About')
+
+@section('content')
+  <h1>About</h1>
+@endsection
+```
+
+| Option | Effect |
+|--------|--------|
+| `-l, --layout <layout>` | Extend another layout, e.g. `layouts.admin` |
+| `--no-layout` | Write a standalone HTML page |
+| `-c, --component` | Write a component in `views/components/`: `make:view forms/input -c` is used as `<x-forms.input>` |
+
+If `src/app.ts` doesn't call `app.useViews()` yet, the command says so. See
+[Views](/advanced/views).
+
 ## Events
 
 ```sh
