@@ -114,13 +114,21 @@ export class OrderShippedMail extends Mailable {
 | --- | --- | --- |
 | `envelope()` | `{ subject?, from?, replyTo?, to?, cc?, bcc?, headers? }` | All optional. The subject defaults to the class name as words (`OrderShippedMail` → "Order Shipped Mail"). `from` overrides `MEGH_MAIL_FROM_*`. |
 | `content()` | `{ html?, text? }` | Required. Give `html`, `text` or both. |
-| `attachments()` | `MailAttachment[]` | Optional. Each is `{ filename?, content?, path?, contentType?, cid? }`. `path` is a file or an `http(s)` URL. |
+| `attachments()` | `MailAttachment[]` | Optional. Each is `{ filename?, content?, path?, contentType?, cid? }`. `path` is a file, a `data:` URI, or an `http(s)` URL when `allowUrlAccess` is on. See [Attachment paths](#attachment-paths). |
 
 Each method may be `async`, to load data or render a template.
 
 An address can be written as `'ann@example.com'`, `'Ann <ann@example.com>'` or
 `{ name: 'Ann', address: 'ann@example.com' }`. Addresses, subjects and headers
 that contain a line break are rejected, so user input cannot inject headers.
+
+Each address must be a single `local@domain`. Megh rejects one that contains
+a space, `,`, `;`, `<`, `>` or `"`, such as `'ann@example.com, evil@example.com'`,
+so an address taken from user input (a password reset, an invite, a contact
+form) can't add a second recipient. Pass several addresses as separate
+arguments instead: `to('ann@example.com', 'lee@example.com')`. A display name
+with a comma must be quoted (`'"Lee, Ann" <ann@example.com>'`) or given as an
+object.
 
 ### Inline images
 
@@ -135,6 +143,31 @@ attachments() {
   return [{ filename: 'logo.png', path: 'public/logo.png', cid: 'logo' }];
 }
 ```
+
+### Attachment paths
+
+An attachment's `path` is read when the message is sent. If any part of it
+comes from user input (`{ path: dto.file }`), a client could make the app
+read `/etc/passwd` or fetch `http://169.254.169.254/` (cloud metadata) and
+mail the result out. Megh checks every path when the message is built, for
+every mailer, SMTP included:
+
+| Option on `useMail()` | Default | |
+|---|---|---|
+| `allowUrlAccess` | `false` | Allow `http(s)://` paths. Other schemes are always refused. |
+| `allowFileAccess` | `true` | Allow local file paths. |
+| `attachmentRoot` | | Only read files inside this folder. Relative paths resolve against it, and symlinks can't lead out. |
+
+```ts
+app.useMail({
+  attachmentRoot: 'storage/invoices', // invoice.pdf → storage/invoices/invoice.pdf
+  allowUrlAccess: true,               // only if every URL is yours
+});
+```
+
+A refused path throws `MailError` before anything is sent. `content` (a
+string or `Buffer`) and `data:` URIs are always allowed, so the safest way to
+attach something from user input is to read it yourself and pass `content`.
 
 ## Sending
 

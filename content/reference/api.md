@@ -72,7 +72,7 @@ calls chain.
 | `useOpenApi(options?: OpenApiUiOptions \| Constructor<MeghConfig<OpenApiUiOptions>>)` | Generate the OpenAPI document and serve the docs page. |
 | `useMiddlewares(middlewares: Constructor<MeghMiddleware>[])` | Register global middleware, run before every route. |
 | `useAuthentication(authentication: Constructor<MeghAuthentication>)` | Register the authentication handler that sets `request.user`. |
-| `useAuthorization(authorization: Constructor<any> \| Record<string, Constructor<any>>)` | Register one authorization handler, or several by name. |
+| `useAuthorization(authorization: Constructor<any> \| Record<string, Constructor<any>>, options?: UseAuthorizationOptions)` | Register one authorization handler, or several by name. `{ default }` protects every route without `@Authorized` or `@Public`. See [Deny by default](/core-concept/authentication#deny-by-default). |
 | `useExceptionFilters(filters: ExceptionFilterLike \| ExceptionFilterLike[])` | Register global exception filters, run in order before the default error response. |
 | `useErrorHandler(handler: ErrorHandlerFunction)` | Register a function filter that sees every error. |
 | `useErrorLogger(logger: ErrorLogger \| false)` | Replace how default error responses are logged, or turn logging off. |
@@ -422,6 +422,8 @@ Guide: [Dependency injection](/core-concept/dependency-injection).
 | `Utility` | decorator | Alias of `Injectable`: `@Utility()`. |
 | `Helper` | decorator | Alias of `Injectable`: `@Helper()`. |
 | `inject` | function | `inject<T>(id: ServiceIdentifier<T>, options?: InjectOptions): T`. Resolve a dependency, usually in a field initializer. With `{ optional: true }` it returns `undefined` when nothing is registered. |
+| `Inject` | decorator | `@Inject(id, options?: InjectOptions)`. Inject a token, string or class into a constructor parameter or property, for interface, union and primitive types. |
+| `Optional` | decorator | `@Optional()`. Inject `undefined` into a constructor parameter that can't be resolved, instead of failing. |
 | `createInjectDecorator` | function | `createInjectDecorator(factory: () => unknown)`. Build a property or parameter decorator that injects `factory()`. |
 | `MeghContainer` | const | The container: `get(id)`, `set(id, value)`, `has(id)`, `reset()`. |
 | `Token` | class | `new Token<T>(name?: string)`. A typed identifier for values that aren't classes. |
@@ -451,6 +453,8 @@ Guide: [Authentication](/core-concept/authentication).
 | --- | --- | --- |
 | `MeghAuthentication` | abstract class | `authenticate(request: IRequest): TUser \| null \| undefined \| Promise<...>`. The return value becomes `request.user`. Register with `app.useAuthentication()`. |
 | `CanAuthorize` | decorator | `@CanAuthorize`. Mark a class with an `authorize(req, options?)` method as an authorization handler and register it for DI. |
+| `Public` | decorator | `@Public()`. Leave a controller or route out of the `useAuthorization` default. Inline routes use `.public()`. |
+| `UseAuthorizationOptions`, `AuthorizationDefault` | types | `{ default?: 'authenticated' \| true \| AuthorizedOptions }` for `useAuthorization()`. |
 | `Authorized` | decorator | `@Authorized()`, `@Authorized(name: string)` or `@Authorized({ name?, ...options })`. Require authorization on a controller or route. Extra options are passed to `authorize()`. |
 | `AuthorizeClass` | interface | `{ authorize(req: IRequest, options?: any): unknown }`. Return `false` or throw to deny with 403. |
 | `AuthorizedOptions` | type | `string \| { name?: string; [key: string]: any }`. |
@@ -467,12 +471,13 @@ Guide: [Security Hardening](/production/security#add-security-headers).
 | `StrictTransportSecurityOptions` | type | `{ maxAge?: number; includeSubDomains?: boolean; preload?: boolean }`. |
 | `ReferrerPolicy` | type | A `Referrer-Policy` token, such as `"no-referrer"`. |
 | `RateLimit` | decorator | `@RateLimit(options: RouteRateLimitOptions \| false)`. A controller's or route's own limit and counter, or `false` for none. Works without `useRateLimit()`. |
-| `RateLimitOptions` | type | `{ max?, window?, key?, skip?, store?, redis?, headers?, message?, failOpen?, global? }` for `useRateLimit()`. |
+| `RateLimitOptions` | type | `{ max?, window?, key?, ipv6Subnet?, skip?, store?, redis?, headers?, message?, failOpen?, global? }` for `useRateLimit()`. `ipv6Subnet` (default 64) groups IPv6 clients by prefix with the default key. |
 | `RouteRateLimitOptions` | type | `{ max?: number; window?: RateLimitWindow; key?: (req) => string \| Promise<string> }`. |
 | `RateLimitWindow` | type | `number \| string`. Milliseconds, or a duration such as `'30s'`, `'15m'`, `'1 hour'`. |
 | `RateLimitStore` | interface | `{ hit(key, windowMs): RateLimitHit \| Promise<RateLimitHit>; reset?(key); close?() }`. Where counts live. |
 | `RateLimitHit` | type | `{ count: number; resetAt: number }`. `resetAt` is epoch milliseconds. |
-| `MemoryRateLimitStore` | class | The default store: fixed-window counts in memory, per process. |
+| `MemoryRateLimitStore` | class | The default store: fixed-window counts in memory, per process. `new MemoryRateLimitStore({ sweepIntervalMs?, maxKeys? })`; past `maxKeys` (default 100,000) the oldest windows are dropped. |
+| `rateLimitIpKey` | function | `rateLimitIpKey(ip, ipv6Subnet = 64)`. The default key: IPv4 per address, IPv6 per prefix. Use it in a custom `key` that falls back to the IP. |
 | `RedisRateLimitStore` | class | `new RedisRateLimitStore(redis, { prefix? })`. Counts in Redis, shared by replicas. Takes an ioredis client, which it does not close. |
 | `RedisEvalClient` | interface | The part of an ioredis client the Redis store uses: `eval` and `del`. |
 
@@ -711,7 +716,7 @@ Guide: [Mail](/advanced/mail).
 | `PendingMail` | class | Returned by `mailer.to()`: add recipients, then `send()`, `queue()` or `later()`. |
 | `MailFake` | class | Returned by `Mailer.fake()`. `assertSent`, `assertNotSent`, `assertNothingSent`, `assertSentCount`, `assertQueued`, `assertNotQueued`, `assertNothingQueued`, `sentOf`, `queuedOf`, `sent`, `queued`, `restore`. |
 | `SentMail` | class | A recorded message: `mailer`, `mailable`, `message`, `delay`, `hasTo()`, `hasCc()`, `hasBcc()`, `hasFrom()`. |
-| `MailConfig` | interface | `{ default?, from?, mailers?, queue? }` for `useMail()`. |
+| `MailConfig` | interface | `{ default?, from?, mailers?, queue?, allowFileAccess?, allowUrlAccess?, attachmentRoot? }` for `useMail()`. URL attachments are off unless `allowUrlAccess` is `true`. |
 | `MailQueueConfig` | interface | `{ name?, adapter?, driver?, worker?, jobOptions? }`. |
 | `MailerConfig` | type | One mailer's settings: `{ transport: "smtp" \| "sendgrid" \| "mailgun" \| "postmark" \| "resend" \| "failover" \| "log" \| "array", ... }`, or a `MailTransport`. |
 | `MailTransport` | interface | `{ send(message: MailMessage): Promise<{ messageId?, response? } \| void>; close?() }`. Implement it for your own mailer. |
@@ -881,6 +886,9 @@ Guide: [Logging](/advanced/logging).
 | `LoggerConfig` | interface | `{ level?, pretty?, destination? }`. |
 | `buildLoggerOptions` | function | `buildLoggerOptions(config?, env?): pino.LoggerOptions`. The pino options Megh uses. |
 | `getRequestId` | function | `getRequestId(): string \| undefined`. The ID of the request being handled. |
+| `requestContext` | object | Per-request values: `get`, `getOrThrow`, `has`, `set`, `delete`, `user`, `getUser<T>()`, `requestId`, `active`, `run(fn, init?)`. See [Request Context](/core-concept/request-context). |
+| `createContextKey` | function | `createContextKey<T>(name): ContextKey<T>`. A typed key for `requestContext`. |
+| `ContextKey`, `RequestContextInit` | types | A typed key, and `{ requestId?, user?, values? }` for `requestContext.run()`. |
 | `DEFAULT_REQUEST_ID_HEADER` | const | `"x-request-id"`. |
 | `RequestIdOptions` | type | `false \| { header?, generate? }`, for the `requestId` application option. |
 

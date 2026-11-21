@@ -197,6 +197,10 @@ Things to know:
 
 - **Behind a proxy**, `request.ip` is the proxy's address unless you set
   `trustProxy` (next section). Without it, every client shares one counter.
+  Set it to a hop count or the proxy's address, never `true`: with `true`,
+  clients can send their own `X-Forwarded-For` and get a fresh counter on
+  every request. Megh warns at boot when rate limiting runs with
+  `trustProxy: true`.
 - **Several replicas** each count on their own with the memory store. Pass
   an ioredis client so they share one count:
 
@@ -209,6 +213,17 @@ Things to know:
   Megh does not close a client you pass in. For another backend, implement
   `RateLimitStore` (`hit(key, windowMs)` returns `{ count, resetAt }`) and pass
   it as `store`.
+- A route's own limit (`@RateLimit`) is one counter per handler. With URI
+  versioning, `/v1/login` and `/v2/login` share it, so `@Version(['1', '2'])`
+  doesn't double the attempts a client gets.
+- **IPv6 clients** are counted per `/64` network, because one host usually
+  owns a whole `/64` and could rotate addresses inside it to dodge the limit.
+  Change it with `ipv6Subnet` (`128` counts each address). IPv4 is counted
+  per address.
+- **The memory store holds at most 100,000 clients.** Past that it drops the
+  oldest windows first and logs a warning once, so a flood of new addresses
+  can't exhaust memory. Dropped clients start a fresh count. Raise the cap
+  with `store: new MemoryRateLimitStore({ maxKeys: 500_000 })`, or use Redis.
 - **If the store fails** (Redis is down), requests get 500. Set
   `failOpen: true` to let them through instead; the error is still logged.
 - `/health` and `/ready` from `useHealth()` are never limited, so probes keep
@@ -225,12 +240,16 @@ on plain HTTP inside the network. Tell Fastify to trust the proxy so
 
 ```ts
 const app = Megh.createApplication({
-  server: { trustProxy: true }, // or the proxy's address, e.g. '10.0.0.0/8'
+  server: { trustProxy: 1 }, // one proxy in front; or its address, e.g. '10.0.0.0/8'
 });
 ```
 
-Only trust a proxy that overwrites those headers, or clients can spoof their
-IP. Bind to `127.0.0.1` (`HOST=127.0.0.1`) when the proxy runs on the same
+Don't use `trustProxy: true`. Common proxies, such as nginx with
+`$proxy_add_x_forwarded_for` and AWS ALB, **append** the client's address to
+`X-Forwarded-For` instead of replacing it. With `true`, Fastify takes the
+leftmost entry, which the client wrote, so clients can spoof their IP and
+dodge rate limits. A hop count (the number of proxies you run) or the
+proxies' addresses make Fastify read the entry your own proxy added. Bind to `127.0.0.1` (`HOST=127.0.0.1`) when the proxy runs on the same
 machine. To terminate TLS in Node instead, pass `server.https`.
 
 ### Limit body sizes

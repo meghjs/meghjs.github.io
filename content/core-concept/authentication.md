@@ -121,6 +121,40 @@ app.useAuthorization({ jwt: JwtAuthorization, apiKey: ApiKeyAuthorization });
 `@Authorized()` with no name uses the first registered handler. Naming a
 handler that is not registered makes `app.run()` fail at boot.
 
+### Deny by default
+
+A route without `@Authorized` is public, so forgetting it on one handler
+leaves that endpoint open. To flip this, set a default with
+`useAuthorization`, and mark the routes that stay open with `@Public()`:
+
+```ts
+app.useAuthentication(JwtAuthentication);
+app.useAuthorization(JwtAuthorization, { default: 'authenticated' });
+
+@Public()
+@ApiController('/auth')
+export class AuthController {
+  @Post('/login')
+  login() {}
+}
+
+app.mapGet('/status', () => ({ ok: true })).public();
+```
+
+| `default` | Every route without `@Authorized` or `@Public` needs |
+|---|---|
+| `'authenticated'` | A user from `useAuthentication()`, else **401** |
+| `true` | The default authorizer, like a bare `@Authorized()` |
+| `'jwt'`, `{ name: 'jwt', roles: ['user'] }` | That authorizer and options, like `@Authorized('jwt')` |
+
+- An explicit `@Authorized` on a route or its controller always wins over the
+  default, and over `@Public`. A route marked with both logs a warning at boot.
+- `@Public()` works on a controller or a route. Inline routes use `.public()`.
+- Health probes (`useHealth()`), the OpenAPI UI and static files aren't routes
+  Megh authorizes, so they stay public.
+- The default is off unless you set it. `megh route:list` shows each route as
+  `authorized`, `public` or `default` (protected only when a default is set).
+
 ## Order of checks
 
 Middleware runs first (global, then `@UseMiddleware`), then authentication,
