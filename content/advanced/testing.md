@@ -127,7 +127,6 @@ describe('Users API', () => {
 
   beforeAll(async () => {
     http = MeghTest.from(app);
-    await new Promise((r) => setTimeout(r, 0)); // let routes finish mapping
   });
 
   afterAll(() => app.close());
@@ -194,13 +193,6 @@ is thrown by the request. It does not call `run()`, so:
 
 Call `from()` once per app, for example in `beforeAll`. Calling it again maps
 the routes a second time, which fails.
-
-::: warning Wait before the first request
-`from()` starts mapping routes but doesn't wait for it to finish. Wait one
-tick, as above, before the first request. Otherwise the request can reach
-Fastify before every route is added and get a 404. If mapping fails, the
-error is only printed to the console, and the routes are missing.
-:::
 
 ## Teardown
 
