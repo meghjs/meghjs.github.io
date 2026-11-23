@@ -244,8 +244,10 @@ HttpResponse.Created<T>(obj: any, dto?: ClassConstructor<T>): IHttpResponse<T>  
 HttpResponse.NoContent(): IHttpResponse<null>                                   // 204
 ```
 
-With a DTO class, `Ok` and `Created` keep only the DTO's exposed fields
-(class-transformer `excludeExtraneousValues`).
+With a DTO class, `Ok` and `Created` keep only the DTO's `@Expose`d fields
+(`excludeExtraneousValues`), converted to their declared types. Classes
+decorated only with class-transformer's `@Expose` are shaped by
+class-transformer, if it is installed.
 
 ### Pagination and collections
 
@@ -363,7 +365,31 @@ Every decorator takes an optional last argument, `options?: ValidationOptions`
 | `ArrayMinSize` | decorator | `@ArrayMinSize(min: number, options?)` |
 | `ArrayMaxSize` | decorator | `@ArrayMaxSize(max: number, options?)` |
 | `ArrayNotEmpty` | decorator | `@ArrayNotEmpty(options?)` |
-| `IsArrayNotEmpty` | decorator | `@IsArrayNotEmpty(validationOptions?)`. A class-validator decorator (requires `class-validator`). Prefer `ArrayNotEmpty`. |
+| `ArrayUnique` | decorator | `@ArrayUnique(identifier?: (item) => any, options?)` |
+| `ArrayContains` | decorator | `@ArrayContains(values: any[], options?)` |
+| `ArrayNotContains` | decorator | `@ArrayNotContains(values: any[], options?)` |
+| `IsArrayNotEmpty` | decorator | `@IsArrayNotEmpty(validationOptions?)`. `ArrayNotEmpty` with the constraint key `isArrayWithAtLeastOneElement`. |
+| `Equals` | decorator | `@Equals(comparison, options?)` |
+| `NotEquals` | decorator | `@NotEquals(comparison, options?)` |
+| `IsNotEmptyObject` | decorator | `@IsNotEmptyObject(objectOptions?: { nullable?: boolean }, options?)` |
+| `IsInstance` | decorator | `@IsInstance(targetType: Function, options?)` |
+| `MinDate` | decorator | `@MinDate(date: Date \| (() => Date), options?)` |
+| `MaxDate` | decorator | `@MaxDate(date: Date \| (() => Date), options?)` |
+| `IsDivisibleBy` | decorator | `@IsDivisibleBy(num: number, options?)`. Needs `validator`. |
+| `IsTimeZone` | decorator | `@IsTimeZone(options?)` |
+| `IsPhoneNumber` | decorator | `@IsPhoneNumber(region?: string, options?)`. Needs `libphonenumber-js`. |
+| `IsNumberString`, `IsBooleanString`, `IsDateString`, `IsISO8601`, `IsAlpha`, `IsAlphanumeric`, `IsAscii`, `IsLowercase`, `IsUppercase`, `Contains`, `NotContains`, `IsJSON`, `IsJWT`, `IsHexColor`, `IsHexadecimal`, `IsMongoId`, `IsIP`, `IsBase64`, `IsCreditCard`, `IsCurrency`, `IsDecimal`, `IsFQDN`, `IsLatLong`, `IsPostalCode`, `IsSemVer`, `IsMobilePhone`, `IsStrongPassword` | decorator | String formats, with class-validator's signatures. Need `validator`. |
+
+### Custom validators
+
+| Export | Kind | Signature / description |
+| --- | --- | --- |
+| `ValidatorConstraint` | decorator | `@ValidatorConstraint(options?: { name?: string; async?: boolean })`. Marks a class with `validate(value, args)` (and optionally `defaultMessage(args)`) as a validator. |
+| `Validate` | decorator | `@Validate(constraintClass, constraints?: any[], options?)` |
+| `registerDecorator` | function | `registerDecorator({ name, target, propertyName, constraints?, options?, async?, validator })`. Build a validation decorator. |
+| `ValidateBy` | function | `ValidateBy({ name, constraints?, validator, async? }, options?)`. A property decorator from a validator. |
+| `buildMessage` | function | `buildMessage((eachPrefix, args) => string, options?)`. A `defaultMessage` with the `each value in ` prefix. |
+| `ValidatorConstraintInterface` | type | `{ validate(value, args?): boolean \| Promise<boolean>; defaultMessage?(args?): string }` |
 
 ### Transformation
 
@@ -371,6 +397,11 @@ Every decorator takes an optional last argument, `options?: ValidationOptions`
 | --- | --- | --- |
 | `Type` | decorator | `@Type(typeFunction?: (options?: TypeHelpOptions) => Function, options?: TypeOptions)`. The class a property's value is converted to. Needed for `@ValidateNested` and for query values. |
 | `Transform` | decorator | `@Transform(transformFn: (params: TransformFnParams) => any, options?: TransformDecoratorOptions)`. Change a property's value while the body becomes the DTO. |
+| `Expose` | decorator | `@Expose(options?: ExposeOptions)`, on a property or a class. `options.name` is the key in plain objects; `toClassOnly` / `toPlainOnly` limit the direction. |
+| `Exclude` | decorator | `@Exclude(options?: ExcludeOptions)`, on a property or a class. |
+| `plainToInstance` | function | `plainToInstance(cls, plain, options?: ClassTransformOptions)`. Convert a plain object (or an array) into instances with Megh's decorators. |
+| `instanceToPlain` | function | `instanceToPlain(object, options?: ClassTransformOptions)`. Convert an instance (or an array) into a plain object. |
+| `ClassTransformOptions` | type | `{ excludeExtraneousValues?, enableImplicitConversion?, exposeUnsetFields? }` |
 | `TransformationType` | enum | The direction passed to a `@Transform` function, as in class-transformer. |
 
 ### Mapped types
@@ -385,8 +416,9 @@ Every decorator takes an optional last argument, `options?: ValidationOptions`
 
 | Export | Kind | Description |
 | --- | --- | --- |
-| `validateDto` | function | `validateDto(target, value): DtoValidationResult<T>`. Convert and validate a value with Megh's decorators. |
-| `transformAndValidate` | function | `transformAndValidate(target, value, options?): Promise<RequestValidationResult<T>>`. The same with class-validator and class-transformer. |
+| `validateDto` | function | `validateDto(target, value): DtoValidationResult<T>`. Convert and validate a value with Megh's decorators. Throws for a DTO with async validators. |
+| `validateDtoAsync` | function | `validateDtoAsync(target, value): Promise<DtoValidationResult<T>>`. The same, waiting for async validators. |
+| `transformAndValidate` | function | `transformAndValidate(target, value, options?): Promise<RequestValidationResult<T>>`. The same for any DTO: Megh's validator for Megh DTOs, class-validator and class-transformer for theirs. |
 | `Validator` | class | Rule-based validator for plain objects: `new Validator(rules: ValidationProps, options?).validate(obj)` returns `[issues, obj]`. |
 | `validateOrThrow` | function | `validateOrThrow(obj, rules: ValidationProps, options?)`. Validate with `Validator` and throw `BadRequestException` on failure. |
 | `isMeghValidatorClass` | function | Whether a class uses Megh's validation decorators. |
@@ -992,8 +1024,8 @@ removed in a minor release, so prefer the APIs above.
 | `sleep` | function | `sleep(ms)`: a promise that resolves after `ms`. |
 | `pick`, `exclude` | function | Copy an object with only, or without, the given paths. |
 | `autoCast`, `normalizeQueryDeep` | function | Convert query and parameter strings to typed values. |
-| `transformObjectByInstanceToObject`, `jsonToJs`, `jsonToInstance` | function | class-transformer and JSON helpers. |
+| `transformObjectByInstanceToObject`, `jsonToJs`, `jsonToInstance` | function | Conversion and JSON helpers (Megh's conversion, or class-transformer for classes that use only its decorators). |
 | `getDataType`, `isValidType`, `isValidJsonString` | function | Type checks used for parameters. |
-| `isClassValidatorClass`, `validateObjectByInstance` | function | class-validator helpers. |
-| `REQUEST_VALIDATION_OPTIONS` | const | class-validator options Megh uses for request DTOs. |
+| `isClassValidatorClass`, `validateObjectByInstance` | function | Validation helpers: whether a class has class-validator rules; validate a value with its DTO. |
+| `REQUEST_VALIDATION_OPTIONS` | const | class-validator options Megh uses for class-validator request DTOs. |
 | `formatValidationMessage` | function | One-line summary of validation issues. |

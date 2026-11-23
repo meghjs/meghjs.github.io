@@ -31,7 +31,7 @@ npm i -g @meghjs/cli
 | `make:queue` | `m:q` | Create a queue with a job handler in `src/queues/` |
 | `make:worker` | `m:w` | Create a worker for a queue in `src/workers/` |
 | `make:task` | `m:task`, `make:scheduler` | Create a scheduled task in `src/tasks/` (`--cron`, `--interval`) |
-| `make:dto` | `m:dto` | Create a class-validator DTO in `src/dtos/` |
+| `make:dto` | `m:dto` | Create a DTO in `src/dtos/` |
 | `make:class` | `m:cls` | Create a plain class in `src/classes/` |
 | `make:view` | `m:v` | Create a `.megh.html` view (or `-c` component) in `views/` |
 | `make:test` | `m:t` | Create a unit test (`<name>.spec.ts`) for an existing file |

@@ -491,7 +491,7 @@ export class JwtConfig extends MeghConfig {
 npx megh make:dto CreatePost
 ```
 
-Writes `src/dtos/create-post.dto.ts`: a `CreatePostDto` with class-validator
+Writes `src/dtos/create-post.dto.ts`: a `CreatePostDto` with validation
 rules for a `name` and an optional `description`, to replace with your fields.
 Its test checks that a valid body passes and that `name` is required.
 

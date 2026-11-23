@@ -1,6 +1,6 @@
 ---
 title: Validation
-description: Validating request bodies and query strings with DTOs, using Megh's validation decorators or class-validator.
+description: Validating request bodies and query strings with DTOs, custom and async validators, and shaping responses with Expose and Exclude.
 ---
 
 # Validation
@@ -13,7 +13,8 @@ The decorators come from `@meghjs/core`. They have the same names, options and
 error messages as [class-validator](https://github.com/typestack/class-validator)
 and [class-transformer](https://github.com/typestack/class-transformer), and
 Megh compiles each DTO's rules once into a single function, so validation is
-much faster. DTOs written with class-validator keep working; see
+much faster. You don't need to install class-validator or class-transformer.
+DTOs written with them keep working if they are installed; see
 [Switching from class-validator](#switching-from-class-validator).
 
 ## Defining a DTO
@@ -137,12 +138,16 @@ index(@Query() query: ListUsersDto) {
 |------|------------|
 | Presence | `IsOptional`, `IsDefined`, `IsNotEmpty`, `IsEmpty`, `Allow`, `ValidateIf(condition)` |
 | Type | `IsString`, `IsNumber(options?)`, `IsInt`, `IsBoolean`, `IsDate`, `IsArray`, `IsObject`, `IsEnum(entity)` |
-| Values | `IsIn(values)`, `IsNotIn(values)` |
-| Numbers | `Min(n)`, `Max(n)`, `IsPositive`, `IsNegative` |
-| Strings | `MinLength(n)`, `MaxLength(n)`, `Length(min, max?)`, `Matches(pattern, modifiers?)`, `IsEmail(options?)`, `IsUUID(version?)`, `IsUrl(options?)` |
-| Arrays | `ArrayNotEmpty`, `ArrayMinSize(n)`, `ArrayMaxSize(n)` |
+| Values | `IsIn(values)`, `IsNotIn(values)`, `Equals(value)`, `NotEquals(value)` |
+| Numbers | `Min(n)`, `Max(n)`, `IsPositive`, `IsNegative`, `IsDivisibleBy(n)` |
+| Dates | `MinDate(date)`, `MaxDate(date)` (a `Date`, or a function returning one) |
+| Strings | `MinLength(n)`, `MaxLength(n)`, `Length(min, max?)`, `Matches(pattern, modifiers?)`, `IsEmail(options?)`, `IsUUID(version?)`, `IsUrl(options?)`, `IsTimeZone` |
+| String formats | `IsNumberString`, `IsBooleanString`, `IsDateString`, `IsISO8601`, `IsAlpha`, `IsAlphanumeric`, `IsAscii`, `IsLowercase`, `IsUppercase`, `Contains(seed)`, `NotContains(seed)`, `IsJSON`, `IsJWT`, `IsHexColor`, `IsHexadecimal`, `IsMongoId`, `IsIP(version?)`, `IsBase64`, `IsCreditCard`, `IsCurrency`, `IsDecimal`, `IsFQDN`, `IsLatLong`, `IsPostalCode(locale)`, `IsSemVer`, `IsMobilePhone(locale?)`, `IsStrongPassword(options?)`, `IsPhoneNumber(region?)` |
+| Objects | `IsNotEmptyObject(options?)`, `IsInstance(Class)` |
+| Arrays | `ArrayNotEmpty`, `ArrayMinSize(n)`, `ArrayMaxSize(n)`, `ArrayUnique(identifier?)`, `ArrayContains(values)`, `ArrayNotContains(values)` |
 | Nested | `ValidateNested`, with `Type(() => Class)` |
-| Conversion | `Type(() => Class)`, `Transform(fn)` |
+| Conversion | `Type(() => Class, options?)`, `Transform(fn)`, `Expose(options?)`, `Exclude(options?)` |
+| Custom | `Validate(Constraint)`, `ValidatorConstraint(options?)`, `registerDecorator(options)`, `ValidateBy(options)` |
 
 They behave as their class-validator namesakes. Pass `{ each: true }` to check
 every item of an array instead of the array itself:
@@ -156,16 +161,28 @@ tags: string[];
 `IsOptional` skips the other rules when the value is `null` or `undefined`.
 `ValidateIf((dto, value) => …)` skips them when the condition is false.
 
-### Email, UUID and URL
+### Checks that need a package
 
-`@IsEmail()` with default options is checked by Megh itself and accepts exactly
-the addresses class-validator accepts. `@IsUUID()`, `@IsUrl()` and
-`@IsEmail(options)` with options use the [validator](https://github.com/validatorjs/validator.js)
-package, as class-validator does; install it to use them:
+`@IsEmail()` with default options and `@IsUUID()` are checked by Megh itself and
+accept exactly the values class-validator accepts. `@IsUrl()`,
+`@IsEmail(options)` with options and the checks in the **String formats** row
+(except `IsPhoneNumber`) use the
+[validator](https://github.com/validatorjs/validator.js) package, as
+class-validator does; install it to use them:
 
 ```sh
 npm i validator
 ```
+
+`@IsPhoneNumber()` uses [libphonenumber-js](https://github.com/catamphetamine/libphonenumber-js),
+as class-validator does:
+
+```sh
+npm i libphonenumber-js
+```
+
+A DTO that uses one of these without the package installed fails when the app
+starts, with the `npm i` command to run.
 
 An address containing an unpaired UTF-16 surrogate fails `@IsEmail` with the
 normal 400 (class-validator throws on it, which becomes a 500).
@@ -227,10 +244,182 @@ export class ListUsersDto {
 Like class-transformer, a transform only runs for properties present in the
 input; defaults set on the class (`sort = 'name'`) apply when it is missing.
 
+### Different key names
+
+`@Expose({ name })` reads a property from another key of the body, and writes
+it back under that key in [responses](#shaping-responses):
+
+```ts
+export class CreateUserDto {
+  @Expose({ name: 'first_name' })
+  @IsString()
+  firstName: string;
+}
+```
+
+A body `{ "first_name": "Ada" }` gives `dto.firstName === 'Ada'`.
+
+### Choosing a class from the input
+
+When a property can hold several shapes, `@Type` with a `discriminator`
+picks the class from a property of the value. Arrays work the same way, item
+by item:
+
+```ts
+class CatDto {
+  @IsString()
+  name: string;
+}
+
+class DogDto {
+  @IsString()
+  name: string;
+
+  @IsBoolean()
+  goodBoy: boolean;
+}
+
+export class CreatePetDto {
+  @ValidateNested()
+  @Type(() => Object, {
+    discriminator: {
+      property: 'kind',
+      subTypes: [
+        { name: 'cat', value: CatDto },
+        { name: 'dog', value: DogDto },
+      ],
+    },
+  })
+  pet: CatDto | DogDto;
+}
+```
+
+The `kind` property is removed from the value before it is validated. Pass
+`keepDiscriminatorProperty: true` to keep it (then declare it on each class,
+for example with `@IsIn(['cat'])`).
+
+## Custom validators
+
+Write a class with a `validate` method and mark it with
+`@ValidatorConstraint`, then use it with `@Validate`:
+
+```ts
+import { Validate, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from '@meghjs/core';
+
+@ValidatorConstraint({ name: 'isSlug' })
+class IsSlugConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown) {
+    return typeof value === 'string' && /^[a-z0-9-]+$/.test(value);
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return `${args.property} must be a slug`;
+  }
+}
+
+export class CreatePostDto {
+  @Validate(IsSlugConstraint)
+  slug: string;
+}
+```
+
+The constraint key in errors is the `name` (`{ isSlug: 'slug must be a slug' }`),
+or the class name when no name is given. Constraints passed as
+`@Validate(Class, [a, b])` reach the validator as `args.constraints`.
+
+To make a reusable decorator, use `registerDecorator`:
+
+```ts
+import { registerDecorator, ValidationOptions } from '@meghjs/core';
+
+export function IsSlug(options?: ValidationOptions) {
+  return (object: object, propertyName: string) =>
+    registerDecorator({
+      name: 'isSlug',
+      target: object.constructor,
+      propertyName,
+      options,
+      validator: {
+        validate: (value) => typeof value === 'string' && /^[a-z0-9-]+$/.test(value),
+        defaultMessage: (args) => `${args!.property} must be a slug`,
+      },
+    });
+}
+```
+
+### Async validators
+
+A validator may return a promise, for example to check the database:
+
+```ts
+@ValidatorConstraint({ name: 'isEmailFree', async: true })
+class IsEmailFree implements ValidatorConstraintInterface {
+  async validate(email: string) {
+    return !(await User.findBy('email', email));
+  }
+
+  defaultMessage() {
+    return 'email is already registered';
+  }
+}
+```
+
+Request validation waits for async validators. DTOs without them are still
+validated synchronously. To validate one by hand, use `validateDtoAsync`
+(`validateDto` throws for a DTO with an async validator).
+
+The validator class is created once, with no constructor arguments, and
+reused.
+
+## Shaping responses
+
+`HttpResponse.Ok(data, Class)` and `HttpResponse.Created(data, Class)` return
+`data` shaped by `Class`: only properties marked with `@Expose()` are kept,
+converted to their declared types, and nested classes are shaped by their own
+decorators:
+
+```ts
+import { Exclude, Expose, HttpResponse, Type } from '@meghjs/core';
+
+class AuthorView {
+  @Expose()
+  name: string;
+}
+
+export class PostView {
+  @Expose()
+  id: number;
+
+  @Expose({ name: 'post_title' })
+  title: string;
+
+  @Expose()
+  @Type(() => AuthorView)
+  author: AuthorView;
+}
+
+// In a controller:
+return HttpResponse.Ok(post, PostView);
+// { message: 'success', data: { id: 1, post_title: '…', author: { name: '…' } } }
+```
+
+`@Exclude()` drops a property (`@Exclude({ toPlainOnly: true })` drops it from
+responses only), and `@Exclude()` on a class drops every property that isn't
+`@Expose`d. `@Transform(fn, { toPlainOnly: true })` changes a value in
+responses only.
+
+The same conversions are available directly as `plainToInstance(Class, plain,
+options?)` and `instanceToPlain(object, options?)`, with class-transformer's
+names. They support the `excludeExtraneousValues`, `enableImplicitConversion`
+and `exposeUnsetFields` options. `groups` and versions (`since`, `until`) are
+not supported: an `@Expose` with `groups` is never applied.
+
 ## Switching from class-validator
 
-Existing class-validator DTOs keep working as before. To switch a DTO, import
-its decorators from `@meghjs/core` instead:
+Existing class-validator DTOs keep working as long as class-validator and
+class-transformer are installed. They are optional peers of `@meghjs/core`:
+an app whose DTOs all use Megh's decorators doesn't need them. To switch a
+DTO, import its decorators from `@meghjs/core` instead:
 
 ```ts
 import { IsString, MinLength } from 'class-validator'; // [!code --]
@@ -244,14 +433,25 @@ Error responses, the values your handler receives and the
 Switch every decorator of a DTO at once. A DTO that mixes `@meghjs/core`
 decorators with class-validator or class-transformer ones fails when the app
 starts, because each library would only check its own rules. Nested DTOs
-(`@Type(() => AddressDto)`) must use Megh's decorators too.
+(`@Type(() => AddressDto)`) must use Megh's decorators too. Custom validators
+move the same way: import `ValidatorConstraint`, `Validate` and
+`registerDecorator` from `@meghjs/core`.
 
-Keep a DTO on class-validator if it needs something Megh does not have yet:
+Once no DTO imports from them, uninstall the two packages:
 
-- custom validators: `@Validate`, `@ValidatorConstraint`, `registerDecorator`
-- class-validator decorators not in the [table](#decorators)
-- `@Expose`, `@Exclude`, and `@Type` with a `discriminator`
-- Megh's `IsArrayNotEmpty` (use `ArrayNotEmpty` instead)
+```sh
+npm uninstall class-validator class-transformer
+```
+
+What Megh does not support:
+
+- validation groups (`groups`, `always`) and `@Expose` groups and versions
+- class-validator's `useContainer`: a custom validator class is created with
+  no constructor arguments
+- class-validator decorators not in the [table](#decorators) (such as
+  `IsLatitude`, `IsISBN`, `IsEthereumAddress`). Write them with
+  [`registerDecorator`](#custom-validators) or keep that DTO on
+  class-validator.
 
 ### Faster class-validator DTOs (experimental)
 
@@ -308,8 +508,10 @@ export class CreateOrderDto {
 }
 ```
 
-`IsArrayNotEmpty` is a class-validator decorator; in a DTO that uses Megh's
-decorators, use `ArrayNotEmpty` instead.
+`IsArrayNotEmpty` is the same check as `ArrayNotEmpty`, with its own constraint
+key (`isArrayWithAtLeastOneElement`) and message. It is a Megh decorator, so a
+class-validator DTO that uses it fails at startup as a mixed DTO; use
+class-validator's `ArrayNotEmpty` there.
 
 ## Validating by hand
 
@@ -325,8 +527,10 @@ if (errors) {
 ```
 
 `value` is the DTO instance and `errors` is `null` when the input is valid,
-the same shape as the 400 response's `errors`. For class-validator DTOs, use
-`transformAndValidate`, which works the same but returns a promise:
+the same shape as the 400 response's `errors`. For DTOs with
+[async validators](#async-validators), use `validateDtoAsync`. For
+class-validator DTOs, use `transformAndValidate`, which works the same for
+either kind of DTO but returns a promise:
 
 ```ts
 import { transformAndValidate } from '@meghjs/core';

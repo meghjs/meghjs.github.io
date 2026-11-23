@@ -82,27 +82,27 @@ New-Item -ItemType Directory -Name src
 ::: code-group
 ```sh [npm]
 npm init -y
-npm i @meghjs/core reflect-metadata class-validator class-transformer
+npm i @meghjs/core reflect-metadata
 npm i --save-dev typescript @types/node
 npx tsc --init
 ```
 ```sh [pnpm]
 pnpm init
-pnpm i @meghjs/core reflect-metadata class-validator class-transformer
+pnpm i @meghjs/core reflect-metadata
 pnpm i --save-dev typescript @types/node
 pnpm tsc --init
 ```
 ```sh [yarn]
 yarn init -y
-yarn add @meghjs/core reflect-metadata class-validator class-transformer
+yarn add @meghjs/core reflect-metadata
 yarn add --dev typescript @types/node
 yarn tsc --init
 ```
 :::
 
-Since 0.3, `class-validator` and `class-transformer` are peer dependencies. The
-package loads them at import time, so install them in every project, even if
-your DTOs use Megh's own [validation decorators](/core-concept/validation).
+[Validation decorators](/core-concept/validation) come from `@meghjs/core`, so
+`class-validator` and `class-transformer` are not needed. They are optional
+peers: install them only to keep DTOs written with their decorators.
 
 Ensure `experimentalDecorators` and `emitDecoratorMetadata` are enabled in
 tsconfig.json — Megh's decorators do not work without them.
