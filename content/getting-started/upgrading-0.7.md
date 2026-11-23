@@ -1,30 +1,133 @@
 ---
 title: Upgrading to 0.7
-description: "What changes in Megh 0.7.0: server-rendered views, the @meghjs/mcp server for AI assistants, deny-by-default authorization, the request context API, megh new --mvc and make:view; plus stricter dependency injection, mail address and attachment checks, and rate limiting."
+description: "What changes in Megh 0.7.1 and 0.7.0: optional class-validator and class-transformer, a fuller ORM (constrained eager loading, upserts, model events, hidden columns, polymorphic relations), server-rendered views, the @meghjs/mcp server, deny-by-default authorization and the request context API."
 ---
 
 # Upgrading to 0.7
 
-0.7.0 adds server-rendered [views](/advanced/views), an
-[MCP server](/ai/mcp) for AI assistants, opt-in
-[deny-by-default authorization](/core-concept/authentication#deny-by-default)
-and a [request context](/core-concept/request-context) API.
-
-It also makes a few checks stricter, so code that used to run with a hidden
-problem now fails early. Most apps need no changes. Read
-[Breaking in 0.7.0](#breaking-in-0-7-0) before upgrading: each item says how to
-tell whether it affects you.
-
-`@meghjs/core`, `@meghjs/cli` and the new `@meghjs/mcp` share one version
-number. Upgrade them together:
+`@meghjs/core`, `@meghjs/cli` and `@meghjs/mcp` share one version number.
+Upgrade them together:
 
 ```sh
-npm i @meghjs/core@~0.7.0
-npm i -D @meghjs/cli@~0.7.0
+npm i @meghjs/core@~0.7.1
+npm i -D @meghjs/cli@~0.7.1
 ```
 
-0.7.0 is the last minor release before 1.0. See the
+0.7.1 makes class-validator and class-transformer optional and fills out the
+[ORM](/advanced/orm). It has a few breaking changes, which is unusual for a
+patch release: read [Breaking in 0.7.1](#breaking-in-0-7-1) before upgrading.
+Each item says how to tell whether it affects you.
+
+Coming from 0.6.x? Read [Breaking in 0.7.0](#breaking-in-0-7-0) too.
+
+0.7 is the last minor release before 1.0. See the
 [versioning policy](/reference/versioning).
+
+## Breaking in 0.7.1
+
+### Model method names are reserved
+
+`Model` has new instance methods: `refresh`, `fresh`, `touch`, `replicate`,
+`increment`, `decrement`, `makeVisible` and `makeHidden`.
+
+**Affects you if** a model declares a column, getter or method with one of
+these names. Rename it, or map the column to another property with
+`@Column({ name })`. See
+[Reserved names](/advanced/orm/models#instance-helpers).
+
+### `Model.create()` goes through `save()`
+
+`Model.create(values)` now builds an instance and calls `save()`, so it fires
+the `saving`, `creating`, `created` and `saved` [events](/advanced/orm/models#events).
+
+**Affects you if** you register model event handlers and expect them not to
+run on `create()`. Query-level writes (`insert()`, `upsert()`,
+`where(…).update()`) still fire no events.
+
+### `IsArrayNotEmpty` is a Megh decorator
+
+It used to register a class-validator rule. A class-validator DTO that uses it
+now fails at startup, because it mixes the two libraries.
+
+**Affects you if** a DTO imports other decorators from `class-validator` and
+uses `IsArrayNotEmpty`. Replace it with class-validator's `ArrayNotEmpty`, or
+switch the whole DTO to `@meghjs/core`. Its constraint key
+(`isArrayWithAtLeastOneElement`) and message are unchanged.
+
+## New in 0.7.1
+
+### class-validator and class-transformer are optional
+
+`@meghjs/core` no longer loads class-validator or class-transformer when it
+starts. Both are now optional peers: an app whose DTOs use Megh's decorators
+runs without them, and `megh new` no longer adds them to new projects.
+
+Apps with class-validator DTOs keep working unchanged while the two packages
+are installed. A class-validator DTO validated without class-transformer
+installed fails with an error naming the package to install.
+
+To drop them, switch each DTO's imports to `@meghjs/core` (see
+[Switching from class-validator](/core-concept/validation#switching-from-class-validator)),
+then run `npm uninstall class-validator class-transformer`.
+
+### Everything a DTO needed class-validator for
+
+These now come from `@meghjs/core`, with class-validator's and
+class-transformer's names, options, constraint keys and messages:
+
+- custom validators: `@ValidatorConstraint`, `@Validate`, `registerDecorator`,
+  `ValidateBy`, `buildMessage`, including async validators
+  ([guide](/core-concept/validation#custom-validators)). Request validation
+  waits for them; `validateDtoAsync` validates by hand.
+- `@Expose` and `@Exclude`, on properties and classes, and
+  `plainToInstance` / `instanceToPlain`
+  ([guide](/core-concept/validation#shaping-responses))
+- `@Type` with a `discriminator` (it used to throw)
+- `ArrayUnique`, `ArrayContains`, `ArrayNotContains`, `Equals`, `NotEquals`,
+  `IsNotEmptyObject`, `IsInstance`, `MinDate`, `MaxDate`, `IsDivisibleBy`,
+  `IsTimeZone`, `IsPhoneNumber` and the string-format checks
+  (`IsDateString`, `IsNumberString`, `IsAlpha`, `IsMongoId`, `IsIP`, …). See
+  the [table](/core-concept/validation#decorators).
+
+`@IsUUID()` no longer needs the `validator` package.
+
+### A fuller ORM
+
+- **Constrained eager loading:** `Todo.with('user', (q) => q.select('name'))`,
+  with `where`, `orderBy` and a per-parent `limit()`. Unselected columns are a
+  type error. See [Constraining eager loads](/advanced/orm/relations#constraining-eager-loads).
+- **New relations:** [has many through](/advanced/orm/relations#has-many-through)
+  and [polymorphic relations](/advanced/orm/relations#polymorphic-relations).
+- **Model queries match `DB.table()`:** more conditions,
+  [subqueries](/advanced/orm/queries#subqueries),
+  [global scopes](/advanced/orm/queries#global-scopes),
+  [streaming large results](/advanced/orm/queries#large-results),
+  [cancelling](/advanced/orm/queries#cancelling-queries) and
+  [row locks](/advanced/orm/queries#locking-rows).
+- **Writes:** `firstOrNew`, `firstOrCreate`, `updateOrCreate`, `createMany`,
+  bulk `insert` and `upsert` on every dialect. See
+  [Finding or creating](/advanced/orm/queries#finding-or-creating) and
+  [Many rows](/advanced/orm/queries#many-rows).
+- **Models:** [hidden and visible columns](/advanced/orm/models#hiding-columns-from-json)
+  (also left out of OpenAPI schemas), [events](/advanced/orm/models#events)
+  and [instance helpers](/advanced/orm/models#instance-helpers).
+- **`DB.table()`:** upsert, CTEs, unions, locks and streaming. See the
+  [query builder](/advanced/orm/query-builder).
+
+### Other changes
+
+- **`HttpResponse.Ok(data, Class)` and `Created(data, Class)`** shape the data
+  with Megh's conversion unless `Class` uses only class-transformer
+  decorators, which keep using class-transformer. Results are the same; a
+  response class that mixes Megh and class-transformer decorators now follows
+  Megh's.
+- **`transformAndValidate`** validates DTOs that use Megh's decorators with
+  Megh's validator, as the router already did. Results are the same.
+- **Generated code** (`megh new`, `make:dto`, `make:resource`,
+  `scaffold:auth`) imports its decorators from `@meghjs/core`, and the test
+  that `make:dto` writes uses `validateDto`.
+- **`toJSON()`** on a model leaves out `hidden` columns, including those of
+  loaded relations, and returns relations as plain objects.
 
 ## Breaking in 0.7.0
 
