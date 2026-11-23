@@ -33,11 +33,13 @@ Values are always sent as parameters, never written into the SQL.
 | `where({ status: 'paid', currency: 'EUR' })` | Every column equal |
 | `where((q) => q.where('a', 1).orWhere('b', 2))` | A group in parentheses |
 | `orWhere(...)` | Same forms, joined with `or` |
-| `whereIn`, `whereNotIn` | An empty list matches nothing (`whereIn`) or everything (`whereNotIn`) |
+| `whereIn`, `whereNotIn`, `orWhereIn` | A list, or a subquery: `whereIn('id', DB.table('bans').select('user_id'))`. An empty list matches nothing (`whereIn`) or everything (`whereNotIn`) |
+| `whereExists(query)`, `whereNotExists(query)` | `whereExists(DB.table('bans').whereColumn('bans.user_id', '=', 'users.id'))` |
 | `whereNull`, `whereNotNull`, `orWhereNull`, `orWhereNotNull` | |
 | `whereBetween`, `whereNotBetween` | `whereBetween('age', [18, 65])` |
 | `whereColumn('updated_at', '>', 'created_at')` | Compare two columns |
 | `whereRaw('lower(email) = ?', [email])`, `orWhereRaw` | SQL with `?` placeholders |
+| `when(value, (q, value) => …, otherwise?)` | Apply a part of the query only when `value` is set |
 
 `where('x', null)` becomes `x is null`. As in SQL, `and` binds tighter than
 `or`: `.where(a).orWhere(b).where(c)` means `a or (b and c)`.
@@ -46,9 +48,13 @@ Values are always sent as parameters, never written into the SQL.
 
 | | |
 |---|---|
-| `select('id', 'users.email as contact')`, `selectRaw(sql, bindings?)`, `distinct()` | Columns. All columns by default |
+| `select('id', 'users.email as contact', 'orders.*')`, `selectRaw(sql, bindings?)`, `distinct()`, `distinctOn(...columns)` | Columns. All columns by default. `distinctOn` is PostgreSQL only |
 | `join(table, left, right)`, `join(table, left, op, right)`, `leftJoin`, `rightJoin` | `join('users', 'users.id', 'orders.user_id')` |
-| `orderBy(column, 'asc' \| 'desc')`, `orderByDesc`, `orderByRaw`, `latest(column = 'created_at')`, `oldest` | |
+| `orderBy(column, 'asc' \| 'desc', nulls?)`, `orderByDesc`, `orderByRaw`, `latest(column = 'created_at')`, `oldest` | `nulls`: `'first'` or `'last'`, on every database |
+| `union(query)`, `unionAll(query)` | Add another query's rows |
+| `withExpression(name, query)`, `withRecursiveExpression(name, anchor, recursive)` | Common table expressions, see **Trees and CTEs** below |
+| `lockForUpdate()`, `sharedLock()`, `skipLocked()`, `noWait()` | Row locks, as on [model queries](/advanced/orm/queries#locking-rows) |
+| `abortSignal(signal, strategy?)` | Stop when `signal` aborts, as on [model queries](/advanced/orm/queries#cancelling-queries) |
 | `groupBy(...columns)`, `having(column, op, value)`, `havingRaw` | |
 | `limit` / `take`, `offset` / `skip`, `forPage(page, perPage)` | |
 
@@ -62,6 +68,8 @@ Values are always sent as parameters, never written into the SQL.
 | `exists()`, `doesntExist()` | |
 | `count(column?)`, `sum`, `avg`, `min`, `max` | Grouped and distinct queries count their rows |
 | `paginate({ page, perPage })` | `{ data, meta: { total, page, perPage, lastPage, next, prev } }` |
+| `chunkById(size, fn, column = 'id')` | `size` rows at a time, paged by a unique column; `fn` returns `false` to stop |
+| `stream(chunkSize?)` | `for await (const row of query.stream())`: rows as the database sends them |
 
 **Writing**
 
@@ -75,6 +83,41 @@ await DB.table('carts').where('updated_at', '<', cutoff).delete();
 
 Objects are stored as JSON. A column a row leaves out gets its database
 default, even in a multi-row insert.
+
+`upsert(rows, uniqueBy, update?)` inserts rows, or updates those whose
+`uniqueBy` columns match an existing row. It runs as `ON CONFLICT`,
+`ON DUPLICATE KEY UPDATE` or `MERGE`, depending on the database. See
+[Many rows](/advanced/orm/queries#many-rows).
+
+```ts
+await DB.table('stock').upsert([{ sku: 'A1', qty: 5 }], 'sku', ['qty']);
+```
+
+**Trees and CTEs**
+
+`withRecursiveExpression()` walks trees and graphs in one query. The anchor
+query picks the starting rows, and the recursive one joins the expression's
+own name to find the next level:
+
+```ts
+const subtree = await DB.table('tree')
+  .withRecursiveExpression(
+    'tree',
+    DB.table('categories').where('id', rootId),
+    DB.table('categories')
+      .select('categories.*')
+      .join('tree', 'tree.id', 'categories.parent_id'),
+  )
+  .get();
+
+// as a subquery for models
+const ids = DB.table('tree').withRecursiveExpression('tree', anchor, recursive).select('id');
+const categories = await Category.query().whereIn('id', ids).get();
+```
+
+`withExpression(name, query)` adds a plain `with name as (…)`. On SQL Server,
+whose expressions recurse without the keyword, `WITH RECURSIVE` is written as
+`WITH`.
 
 **Raw SQL and transactions**
 

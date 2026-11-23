@@ -542,9 +542,9 @@ The ORM ships inside `@meghjs/core` as a built-in plugin. Connect it with
 
 | Export | Kind | Description |
 | --- | --- | --- |
-| `Model` | abstract class | Base class for models. Static query methods (`query`, `find`, `findOrFail`, `where`, `with`, `create`, `paginate`, `transaction`, …) and instance methods (`save`, `fill`, `delete`, `restore`, `related`, …). |
-| `ModelQuery` | class | A query on a model. Nothing runs until `get()`, `first()`, `count()`, `paginate()`, `update()` or `delete()`. |
-| `HasRelation` | class | A `hasMany` / `hasOne` relation of one model instance: `user.related("posts")`. |
+| `Model` | abstract class | Base class for models. Static query methods (`query`, `find`, `findOrFail`, `where`, `with`, `create`, `createMany`, `insert`, `upsert`, `firstOrNew`, `firstOrCreate`, `updateOrCreate`, `paginate`, `transaction`, `on`, `withoutGlobalScope`, …), instance methods (`save`, `fill`, `delete`, `restore`, `refresh`, `fresh`, `touch`, `replicate`, `increment`, `makeVisible`, `related`, …) and settings (`hidden`, `visible`, `appends`, `globalScopes`, `morphType`, …). |
+| `ModelQuery` | class | A query on a model. Nothing runs until `get()`, `first()`, `count()`, `pluck()`, `paginate()`, `chunk()`, `lazy()`, `stream()`, `update()` or `delete()`. |
+| `HasRelation` | class | A `hasMany` / `hasOne` / `morphMany` / `morphOne` relation of one model instance: `user.related("posts")`. |
 | `PivotRelation` | class | The pivot rows of a `belongsToMany` relation: `user.related("roles").attach([1, 2])`. |
 | `ORM_CONNECTION` | const | `Token<Kysely<any>>` holding the ORM's root Kysely instance. |
 | `modelSchema` | function | `modelSchema(cls): SchemaObject \| undefined`. JSON schema for a model's columns. |
@@ -566,6 +566,11 @@ The ORM ships inside `@meghjs/core` as a built-in plugin. Connect it with
 | `HasOne` | decorator and type | `@HasOne(related: () => C, options?: HasOptions)`. |
 | `BelongsTo` | decorator and type | `@BelongsTo(related: () => C, options?: BelongsToOptions)`. |
 | `BelongsToMany` | decorator and type | `@BelongsToMany(related: () => C, options?: BelongsToManyDecoratorOptions)`. |
+| `HasManyThrough` | decorator and type | `@HasManyThrough(related: () => C, through: () => T, options?: ThroughOptions)`. |
+| `HasOneThrough` | decorator and type | `@HasOneThrough(related: () => C, through: () => T, options?: ThroughOptions)`. |
+| `MorphMany` | decorator and type | `@MorphMany(related: () => C, name: string, options?: MorphOptions)`. |
+| `MorphOne` | decorator and type | `@MorphOne(related: () => C, name: string, options?: MorphOptions)`. |
+| `MorphTo` | decorator and type | `@MorphTo(targets: () => C[], name?: string)`. |
 
 ### Relation functions
 
@@ -577,6 +582,12 @@ For models that declare relations as fields instead of decorators.
 | `hasOne` | function | `hasOne(related: () => C, foreignKey?: string, localKey?: string)` |
 | `belongsTo` | function | `belongsTo(related: () => C, foreignKey?: string, ownerKey?: string)` |
 | `belongsToMany` | function | `belongsToMany(related: () => C, options?: BelongsToManyOptions)` |
+| `hasManyThrough` | function | `hasManyThrough(related: () => C, through: () => T, options?: ThroughOptions)` |
+| `hasOneThrough` | function | `hasOneThrough(related: () => C, through: () => T, options?: ThroughOptions)` |
+| `morphMany` | function | `morphMany(related: () => C, name: string, localKey?: string)` |
+| `morphOne` | function | `morphOne(related: () => C, name: string, localKey?: string)` |
+| `morphTo` | function | `morphTo(targets: () => C[], name?: string)`. `name` defaults to the field name. |
+| `morphTypeOf` | function | `morphTypeOf(cls): string`. The value `<name>_type` columns store for a model: `static morphType`, or its table. |
 
 ### Connection and configuration
 
@@ -656,6 +667,9 @@ For models that declare relations as fields instead of decorators.
 | `BelongsToOptions` | interface | Options for `@BelongsTo`. |
 | `BelongsToManyOptions` | interface | Options for `belongsToMany()`. |
 | `BelongsToManyDecoratorOptions` | interface | Options for `@BelongsToMany`, including `pivotColumns`. |
+| `ThroughOptions` | interface | Keys of a through relation: `firstKey`, `secondKey`, `localKey`, `secondLocalKey`. |
+| `MorphOptions` | interface | Options for `@MorphMany` and `@MorphOne`: `localKey`. |
+| `ModelEvent` | type | Lifecycle events for `Model.on()`: `saving`, `creating`, `updated`, `deleted`, `restored`, … |
 | `Cast` | type | A column cast: a built-in name or a `CustomCast`. |
 | `CustomCast` | interface | `{ get, set }` conversion between database and model values. |
 | `Columns` | type | A model's column fields. |
@@ -667,6 +681,7 @@ For models that declare relations as fields instead of decorators.
 | `PivotOf` | type | Pivot columns of a `belongsToMany` relation. |
 | `TimestampKeys` | type | Timestamp columns when `timestamps = true`. |
 | `Row` | type | A model's row as loaded from the database. |
+| `EagerShape` | interface | How a `with()` constraint narrows a loaded relation: its columns, relations and counts. |
 | `ModelClass` | interface | The static side of a model class. |
 | `CreateInput` | type | `create()` input. |
 | `UpdateInput` | type | `update()` / `fill()` input. |
@@ -675,11 +690,16 @@ For models that declare relations as fields instead of decorators.
 | `DatabaseOf` | type | Kysely database interface for a set of models. |
 | `ComparisonOperator` | type | Operators accepted by `where`. |
 | `Counted` | type | The `<relation>_count` field `withCount()` adds. |
+| `Aggregated` | type | The `<relation>_<fn>_<column>` field `withSum()`, `withAvg()`, `withMin()` and `withMax()` add. |
+| `Existence` | type | The `<relation>_exists` field `withExists()` adds. |
+| `SubQuery` | interface | A query `whereIn()` and `whereExists()` take: a model query or a `DB.table()` query. |
+| `JoinOperator` | type | Operators for `join()` conditions on model queries. |
 | `CursorPageRequest` | interface | Request for `cursorPaginate()`. |
 | `CursorPaginated` | interface | Result of `cursorPaginate()`. |
 | `SimplePaginated` | interface | Result of `simplePaginate()` (no total). |
 | `ModelAt` | type | The model at the end of a relation path. |
 | `RelationConstraint` | type | A function that narrows a related query. |
+| `EagerConstraints` | type | `with({ … })` input: a constraint per relation path. |
 | `Scope` | type | A reusable query scope. |
 | `RelatedRef` | type | A related row's key, or the related model itself. |
 

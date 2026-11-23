@@ -283,6 +283,91 @@ Timestamp and soft-delete columns are cast as `'datetime'` automatically.
 SQLite drivers can only bind numbers, strings and buffers, so on SQLite
 `Date` values become ISO text and booleans become `1`/`0`, in `where()` too.
 
+## Hiding columns from JSON
+
+`toJSON()`, and so every API response, includes a model's columns, loaded
+relations and counts. Keep secrets out with `hidden`:
+
+```ts
+class User extends Model {
+  static readonly table = 'users';
+  static readonly hidden = ['password', 'remember_token'];
+  static readonly appends = ['full_name'];
+
+  id: number;
+  first_name: string;
+  last_name: string;
+  password: string;
+
+  get full_name() {
+    return `${this.first_name} ${this.last_name}`;
+  }
+}
+
+JSON.stringify(user); // no password; full_name included
+user.password;        // still readable in code
+```
+
+- `hidden` leaves properties out, in loaded relations too
+  (`Post.with('user')` never sends the user's password). OpenAPI schemas from
+  `modelSchema()` leave them out as well.
+- `visible`, when set, is the only list of columns to include. Loaded
+  relations, counts and `appends` are still included.
+- `appends` adds getters.
+- `user.makeVisible('password')` and `user.makeHidden('email')` change one
+  instance.
+
+## Events
+
+Run code when an instance is created, updated, deleted or restored:
+
+```ts
+User.on('creating', (user) => {
+  user.email = user.email.toLowerCase();
+});
+
+User.on('deleted', async (user) => {
+  await audit.log('user deleted', user.id);
+});
+
+const off = Post.on('saved', (post) => cache.forget(`post:${post.id}`));
+off(); // remove the handler
+```
+
+| Event | When |
+|---|---|
+| `saving` / `saved` | Every `save()` and `create()` (`saved` also when nothing changed) |
+| `creating` / `created` | An insert |
+| `updating` / `updated` | An update that changes columns |
+| `deleting` / `deleted` | `delete()`, soft or not, and `forceDelete()` |
+| `restoring` / `restored` | `restore()` |
+
+Handlers run in order and are awaited. `-ing` handlers run before the write:
+they can change the model, or throw to stop the write. Handlers on a base
+class run for its subclasses too.
+
+Query-level writes (`User.where(…).update()`, `.delete()`, `upsert()`,
+`insert()`, `increment()`) change many rows at once and fire no events.
+
+## Instance helpers
+
+```ts
+await user.refresh();          // reload the columns from the database
+const copy = await user.fresh(); // a new instance read from the database, or undefined
+await post.touch();            // set updated_at to now and save
+await post.increment('views'); // views = views + 1 in the database, and on post
+
+const draft = post.replicate(['slug']); // unsaved copy, without id, timestamps and slug
+await draft.fill({ slug: 'copy' }).save();
+```
+
+::: tip Reserved names
+Instance methods such as `save`, `fill`, `delete`, `refresh`, `fresh`,
+`touch`, `replicate`, `increment`, `decrement`, `related`,
+`makeVisible` and `toJSON` can't be used as column or method names on a
+model. Map such a column to another property with `@Column({ name })`.
+:::
+
 ## Generating models
 
 `npx megh make:model user --orm` writes `src/models/user.model.ts`, with its

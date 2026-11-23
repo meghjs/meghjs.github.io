@@ -1,6 +1,6 @@
 ---
 title: Relations
-description: "MeghORM relations: hasMany, hasOne, belongsTo and belongsToMany, eager loading, relation queries and counts."
+description: "MeghORM relations: hasMany, hasOne, belongsTo, belongsToMany, has-many-through and polymorphic relations, eager loading, relation queries and aggregates."
 ---
 
 # Relations
@@ -87,6 +87,58 @@ select * from comments where post_id in (?, ?, ?)
 select * from profiles where user_id in (?, ?)
 ```
 
+### Constraining eager loads
+
+Pass a callback to shape a relation's query. It gets the related model's
+query, so `select()`, `where()`, `orderBy()`, `limit()`, `withTrashed()`,
+`whereHas()`, `withCount()` and nested `with()` all work:
+
+```ts
+const todos = await Todo.with('user', (q) => q.select('name', 'role')).paginate();
+
+todos.data[0].title;          // every todo column
+todos.data[0].user?.name;     // string
+todos.data[0].user?.password; // compile error: not selected
+```
+
+```sql
+select * from todos limit ? offset ?
+select name, role, id from users where id in (?, ?)
+```
+
+`select()` adds the keys the loader matches rows by, here `users.id`. A
+`hasMany` relation keeps its foreign key the same way.
+
+`limit()` and `offset()` apply to each parent's rows, not to the total. This
+loads the three latest published posts of every user:
+
+```ts
+await User.with('posts', (q) =>
+  q.where('published', true).orderBy('created_at', 'desc').limit(3),
+).get();
+```
+
+It runs as one query, numbering each user's posts with
+`row_number() over (partition by user_id order by created_at desc)`. That
+needs window functions: SQLite 3.25+, MySQL 8+, PostgreSQL or SQL Server.
+
+A dotted path constrains its last relation. The relations before it load in
+full:
+
+```ts
+// Every post, each with only its approved comments.
+await User.with('posts.comments', (q) => q.where('approved', true)).get();
+```
+
+To constrain several relations, pass an object:
+
+```ts
+await User.with({
+  posts: (q) => q.select('id', 'title').orderBy('id', 'desc'),
+  profile: (q) => q.select('avatar'),
+}).get();
+```
+
 ## Querying by relation
 
 `whereHas()` keeps rows that have a related row; `whereDoesntHave()` keeps
@@ -98,6 +150,7 @@ await User.whereHas('posts').get();
 await User.whereHas('posts', (q) => q.where('published', true)).get();
 await User.whereHas('posts.comments', (q) => q.where('body', 'like', '%megh%')).get();
 await User.whereDoesntHave('roles').delete();
+await User.whereHas('posts').orWhereHas('comments').get(); // either one
 ```
 
 Each one runs as an `EXISTS` subquery, so it works with `count()`,
@@ -116,12 +169,30 @@ users[0].posts_count; // number
 await User.query().withCount('posts', (q) => q.where('published', true)).get();
 ```
 
-Counts appear in JSON but are never written back by `save()`.
+Sums, averages, minimums, maximums and existence work the same way. Each
+takes a constraint as its last argument:
+
+```ts
+const users = await User.query()
+  .withSum('orders', 'total')     // orders_sum_total: number | null
+  .withAvg('orders', 'total')     // orders_avg_total
+  .withMin('orders', 'placed_at') // orders_min_placed_at, typed like the column
+  .withMax('orders', 'placed_at')
+  .withExists('subscription')     // subscription_exists: boolean
+  .get();
+
+await User.query().withSum('orders', 'total', (q) => q.where('status', 'paid')).get();
+```
+
+A sum, average, minimum or maximum is `null` when there are no related rows.
+
+Counts and aggregates appear in JSON but are never written back by `save()`.
 
 ## Creating related rows
 
-`related()` on a `hasMany` or `hasOne` relation creates rows with the foreign
-key already set (on a `belongsTo` it throws, since this row holds the key):
+`related()` on a `hasMany`, `hasOne`, `morphMany` or `morphOne` relation
+creates rows with the foreign key (and type) already set. On a `belongsTo` it
+throws, since this row holds the key:
 
 ```ts
 const post = await user.related('posts').create({ title: 'Hello' }); // user_id set
@@ -130,6 +201,83 @@ await user.related('posts').save(existingPost);  // moves it to this user
 await user.related('posts').query().where('published', true).get();
 const profile = await user.related('profile').get(); // Profile | null
 ```
+
+`related('posts').query()` keeps its link to the user apart from your
+conditions, so an `orWhere()` there can't reach other users' posts.
+
+## Has many through
+
+A relation through an intermediate model. A country has many posts through
+its users:
+
+```ts
+class Country extends Model {
+  static readonly table = 'countries';
+  id: number;
+
+  // countries.id → users.country_id, users.id → posts.user_id
+  posts = hasManyThrough(() => Post, () => User);
+  latestPost = hasOneThrough(() => Post, () => User);
+}
+
+const countries = await Country.with('posts', (q) => q.orderBy('id', 'desc').limit(5)).get();
+await Country.whereHas('posts', (q) => q.where('published', true)).get();
+await Country.query().withCount('posts').get();
+```
+
+The keys default to `<this class>_id` on the intermediate table and
+`<intermediate class>_id` on the related one. Override them with
+`{ firstKey, secondKey, localKey, secondLocalKey }`. Soft-deleted intermediate
+rows don't link anything. With decorators, use `@HasManyThrough(() => Post, () => User)`
+and `@HasOneThrough`.
+
+## Polymorphic relations
+
+One table can belong to several others. Comments on both posts and videos
+hold the owner's key and its type:
+
+```ts
+class Post extends Model {
+  static readonly table = 'posts';
+  id: number;
+  comments = morphMany(() => Comment, 'commentable');
+}
+
+class Video extends Model {
+  static readonly table = 'videos';
+  static readonly morphType = 'video'; // stored type; defaults to the table name
+  id: number;
+  comments = morphMany(() => Comment, 'commentable');
+  thumbnail = morphOne(() => Image, 'imageable');
+}
+
+class Comment extends Model {
+  static readonly table = 'comments';
+  id: number;
+  commentable_id: number;
+  commentable_type: string; // 'posts' or 'video'
+  body: string;
+
+  commentable = morphTo(() => [Post, Video]); // Post | Video | null
+}
+```
+
+```ts
+await Post.with('comments').withCount('comments').get();
+await Post.whereHas('comments', (q) => q.where('body', 'like', '%megh%')).get();
+await post.related('comments').create({ body: 'Nice' }); // id and type set
+
+const comments = await Comment.with('commentable').get(); // one query per type
+if (comments[0].commentable instanceof Video) {
+  // …
+}
+```
+
+The columns are `<name>_id` and `<name>_type`. `morphTo` loads each owner
+type in one query. A type that none of its targets has throws. `whereHas()`
+and the aggregates don't support `morphTo`. Filter on `<name>_type` and
+`<name>_id` instead. With decorators, use `@MorphMany(() => Comment, 'commentable')`,
+`@MorphOne` and `@MorphTo(() => [Post, Video])`.
 
 ## Many-to-many
 
