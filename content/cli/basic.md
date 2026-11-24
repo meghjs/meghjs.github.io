@@ -48,6 +48,7 @@ npm i -g @meghjs/cli
 | `scaffold:auth` | `sc:auth` | Add sign-up and sign-in with JWTs and/or API keys, optionally with roles |
 | `scaffold:rbac` | `sc:rbac` | Add roles and permissions to an app's users |
 | `template:list` | `templates` | List the model templates |
+| `make:agents` | | Write `AGENTS.md` (and a `CLAUDE.md` that imports it) for coding agents |
 
 Every `make:*` command takes `-f` / `--force` to overwrite an existing file.
 The generators except `make:model` and the database ones (`make:migration`,
@@ -105,6 +106,15 @@ layout in `views/layouts/app.megh.html`, a page in `views/pages/home.megh.html`,
 and a `HomeController` that renders it with `Results.View('pages.home', ...)`.
 Add more pages with [`make:view`](/cli/generators#view). See
 [Views](/advanced/views). `--mvc` can't be combined with `--minimal`.
+
+The project also gets an `AGENTS.md`: instructions for coding agents such as
+Claude Code, Codex, Cursor and Copilot. It lists the project's commands, where
+code goes, and the Megh rules that compile cleanly but fail at runtime
+(register new controllers, give every DTO property a validator, and so on). A
+`CLAUDE.md` containing `@AGENTS.md` makes Claude Code read the same file. Edit
+both freely: they're yours. To add them to an existing project, run
+`npx megh make:agents` (`--force` replaces an existing `AGENTS.md`; a
+`CLAUDE.md` of your own is never replaced).
 
 The new project is put under git with `git init`, unless git isn't installed
 or the folder is already inside a repository. Pass `--skip-git` (or set

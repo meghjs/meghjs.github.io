@@ -8,5 +8,15 @@ description: Changes on main since 0.7.1 that can affect existing apps. This pag
 Changes on `main` since 0.7.1 are listed here as they land. They become the
 upgrade guide for the next release.
 
-Nothing has changed since 0.7.1 yet. The changes that were on this page shipped
-in 0.7.1. See [Upgrading to 0.7](/getting-started/upgrading-0.7).
+## Docs for coding agents
+
+Nothing to change in your app. What's new:
+
+- `megh new` writes an `AGENTS.md` with the project's commands, layout and
+  the Megh rules that TypeScript can't check, and a `CLAUDE.md` that imports
+  it. Add them to an existing project with `npx megh make:agents`. See
+  [Application](/cli/basic#application).
+- The docs site publishes [`/llms.txt`](https://meghjs.github.io/llms.txt),
+  an index of every page for agents, and
+  [`/llms-full.txt`](https://meghjs.github.io/llms-full.txt), every page in one
+  file. Each page is also available as markdown: add `.md` to its URL.
