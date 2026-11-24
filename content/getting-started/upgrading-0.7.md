@@ -1,19 +1,24 @@
 ---
 title: Upgrading to 0.7
-description: "What changes in Megh 0.7.1 and 0.7.0: optional class-validator and class-transformer, a fuller ORM (constrained eager loading, upserts, model events, hidden columns, polymorphic relations), server-rendered views, the @meghjs/mcp server, deny-by-default authorization and the request context API."
+description: "What changes in Megh 0.7.2, 0.7.1 and 0.7.0: LLM tools and an MCP server for your app (@meghjs/ai), AGENTS.md and llms.txt for coding agents, optional class-validator and class-transformer, a fuller ORM (constrained eager loading, upserts, model events, hidden columns, polymorphic relations), server-rendered views, the @meghjs/mcp server, deny-by-default authorization and the request context API."
 ---
 
 # Upgrading to 0.7
 
-`@meghjs/core`, `@meghjs/cli` and `@meghjs/mcp` share one version number.
-Upgrade them together:
+Every `@meghjs` package shares one version number. Upgrade them together:
 
 ```sh
-npm i @meghjs/core@~0.7.1
-npm i -D @meghjs/cli@~0.7.1
+npm i @meghjs/core@~0.7.2
+npm i -D @meghjs/cli@~0.7.2
+npm i @meghjs/ai@~0.7.2   # optional: LLM tools and an MCP server for your app
 ```
 
-0.7.1 makes class-validator and class-transformer optional and fills out the
+0.7.2 has no breaking changes. It adds [`@meghjs/ai`](/ai/tools), which turns
+routes into LLM tools and serves them over MCP, and gives coding agents an
+`AGENTS.md` in new projects and [`/llms.txt`](https://meghjs.github.io/llms.txt)
+for the docs. See [New in 0.7.2](#new-in-0-7-2).
+
+Coming from 0.7.0? 0.7.1 makes class-validator and class-transformer optional and fills out the
 [ORM](/advanced/orm). It has a few breaking changes, which is unusual for a
 patch release: read [Breaking in 0.7.1](#breaking-in-0-7-1) before upgrading.
 Each item says how to tell whether it affects you.
@@ -22,6 +27,47 @@ Coming from 0.6.x? Read [Breaking in 0.7.0](#breaking-in-0-7-0) too.
 
 0.7 is the last minor release before 1.0. See the
 [versioning policy](/reference/versioning).
+
+## New in 0.7.2
+
+### LLM tools and an MCP server: `@meghjs/ai`
+
+[`@meghjs/ai`](/ai/tools) is a new plugin. Install it to use it; nothing
+changes for apps that don't.
+
+- `@Tool()` exposes a route to LLMs as a tool. Its input schema comes from the
+  route's path parameters, `@Query()` and `@Body()` DTO, and each call goes
+  through the route's authentication, `@Authorized`, validation and rate
+  limits.
+- `app.tools()`, or an injected `ToolSet`, gives the tools in Anthropic,
+  OpenAI or MCP format, and runs a model's tool calls as the signed-in user.
+  `confirm: true` tools need a person's approval.
+- `app.useMcp()` serves the tools as an MCP server over Streamable HTTP, so
+  assistants such as Claude or Cursor can use your app with the permissions of
+  the user who connects them. It needs `@modelcontextprotocol/sdk`.
+
+### Docs for coding agents
+
+- `megh new` writes an `AGENTS.md` with the project's commands, layout and the
+  Megh rules TypeScript can't check, and a `CLAUDE.md` that imports it. Add
+  them to an existing project with `npx megh make:agents`. See
+  [Application](/cli/basic#application).
+- The docs site publishes [`/llms.txt`](https://meghjs.github.io/llms.txt), an
+  index of every page for agents, and
+  [`/llms-full.txt`](https://meghjs.github.io/llms-full.txt), every page in one
+  file. Each page is also available as markdown: add `.md` to its URL.
+
+### Other changes
+
+- `megh route:list` shows a **TOOL** column when the app has `@Tool` routes,
+  and `--json` adds a `tool` field to those routes.
+- `@meghjs/mcp` adds `megh_list_ai_tools`, which lists the app's tools with
+  safety warnings, and the `megh-add-ai-tools` prompt.
+- Plugins can read each controller route's handler and input schema in
+  Fastify's `onRoute` hook with `getRouteDescriptor(route)` from
+  `@meghjs/core`.
+- A route handler that sends the reply itself (for example after
+  `reply.hijack()`) no longer logs "Reply was already sent".
 
 ## Breaking in 0.7.1
 

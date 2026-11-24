@@ -9,14 +9,14 @@ Megh follows [semantic versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## One version for every package
 
-`@meghjs/core`, `@meghjs/cli` and `@meghjs/mcp` are released together and
-always share the same version number, even when only one of them changed. Use
-matching versions:
+Every `@meghjs` package (`core`, `cli`, `data`, `mcp` and `ai`) is released
+together and always has the same version number, even when only one of them
+changed. Use matching versions:
 
 ```json [package.json]
 {
-  "dependencies": { "@meghjs/core": "0.7.1" },
-  "devDependencies": { "@meghjs/cli": "0.7.1" }
+  "dependencies": { "@meghjs/core": "0.7.2" },
+  "devDependencies": { "@meghjs/cli": "0.7.2" }
 }
 ```
 
@@ -33,8 +33,8 @@ New features ship in patch releases, so a minor release before 1.0 means
 something can break: read its upgrade guide first. 0.7.0 is the last minor
 before 1.0; see [Upgrading to 0.7](/getting-started/upgrading-0.7).
 
-Pin an exact version or use a tilde range (`~0.7.1`) so `npm install` never
-picks up a new minor on its own. A caret range (`^0.7.1`) on a `0.x` version
+Pin an exact version or use a tilde range (`~0.7.2`) so `npm install` never
+picks up a new minor on its own. A caret range (`^0.7.2`) on a `0.x` version
 already behaves like a tilde range.
 
 Fixes go into the latest release only.
