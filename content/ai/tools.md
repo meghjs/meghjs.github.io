@@ -160,6 +160,79 @@ the model as an error that tells it so, and it can ask the user. In
 development, Megh warns about a `POST`, `PUT`, `PATCH` or `DELETE` tool with
 neither `confirm: true` nor `confirm: false`.
 
+## Serve the tools over MCP
+
+`app.useMcp()` turns your app into an [MCP](https://modelcontextprotocol.io)
+server, so assistants such as Claude, ChatGPT, Cursor or VS Code can use your
+product directly, with the same permissions as the user who connects them.
+
+```sh
+npm install @modelcontextprotocol/sdk
+```
+
+```ts
+app.useMcp({
+  tools: { tags: ["public"] },  // required: which tools to serve, or "all"
+});
+```
+
+The server speaks MCP's Streamable HTTP transport at `/mcp`.
+
+**Sign-in.** A client signs in exactly like an API client, with a bearer token
+or an API key, and your `useAuthentication` handler checks it. Each tool call
+runs as that caller, through its route's own `@Authorized`. So a user who
+can't refund orders over HTTP can't refund them through MCP either.
+
+```json
+{
+  "mcpServers": {
+    "shop": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "headers": { "Authorization": "Bearer <token>" }
+    }
+  }
+}
+```
+
+**Approval.** By default, a `confirm: true` tool asks the user before it runs.
+The server sends the question to the client mid-call (MCP *elicitation*), and
+the tool runs only if the user approves. A client that can't ask gets an
+error, and the tool doesn't run. Pick another way with `confirm`:
+
+| `confirm` | A `confirm: true` tool... |
+|---|---|
+| `"elicit"` (default) | runs once the user approves it through the client |
+| `"client"` | runs straight away. It's marked destructive, so clients that ask before each tool call (Claude Code does) still ask |
+| `"refuse"` | isn't served |
+
+All options:
+
+```ts
+app.useMcp({
+  tools: { tags: ["public"] },
+  path: "/mcp",
+  authorize: true,                // @Authorized on the endpoint too: keeps the tool list private
+  rateLimit: { max: 120, window: "1m" },
+  confirm: "elicit",
+  sessions: true,                 // see below
+  sessionTimeout: 30 * 60_000,    // close idle sessions after 30 minutes
+  name: "shop",
+  version: "1.0.0",
+  instructions: "Tools for the Example Shop API. Look up an order before refunding it.",
+});
+```
+
+**Sessions.** By default, each client gets a session, kept in memory and
+closed after `sessionTimeout` without a request. A session is bound to the
+credentials that opened it, so a session ID alone can't be used by another
+client. Sessions live in one process: run a single instance, or route a
+client to the same instance (sticky sessions). With `sessions: false` the
+server is stateless and any instance can answer. It can't ask the user to
+approve then, so set `confirm` to `"client"` or `"refuse"`.
+
+The endpoint is left out of the OpenAPI document.
+
 ## Settings
 
 ```ts

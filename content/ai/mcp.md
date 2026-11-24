@@ -11,6 +11,12 @@ tools and data. With this server, assistants such as Claude Code, Claude
 Desktop, Cursor and VS Code work from your real project and the real Megh docs
 instead of guessing.
 
+::: tip Serving your own app to AI assistants?
+This page is about a server for *building* Megh apps. To let assistants use
+*your app's* API, with your users' permissions, see
+[LLM Tools: Serve the tools over MCP](/ai/tools#serve-the-tools-over-mcp).
+:::
+
 It gives an assistant:
 
 - **The Megh docs.** They ship with the server and match its version, so the
