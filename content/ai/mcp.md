@@ -27,6 +27,11 @@ It gives an assistant:
 - **Migrations and seeders,** which it refuses to run against a production
   project.
 
+Without an MCP client, point an agent at
+[`/llms.txt`](https://meghjs.github.io/llms.txt), an index of these docs for
+agents, or [`/llms-full.txt`](https://meghjs.github.io/llms-full.txt), all of
+them in one file.
+
 It wraps the `megh` CLI. It uses the `@meghjs/cli` installed in your project
 when there is one, so generated code matches your `@meghjs/core`, and falls
 back to its own copy otherwise.
