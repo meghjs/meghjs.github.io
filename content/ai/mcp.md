@@ -99,6 +99,7 @@ files or the database.
 | `megh_project_structure` | Source files grouped by kind (controllers, services, models, DTOs, migrations, seeders...), with counts and the entry file |
 | `megh_doctor` | The `megh doctor` checks: Node.js, `@meghjs/core`, `reflect-metadata`, decorator settings |
 | `megh_list_routes` | `megh route:list --json`. `static: true` reads the decorators without running your code |
+| `megh_list_ai_tools` | The routes exposed to LLMs with [`@Tool()`](/ai/tools), with warnings such as a tool that changes data without `confirm` or `@Authorized` |
 | `megh_list_templates` | `megh template:list [domain] --json` |
 | `megh_typecheck` | Runs the project's `tsc --noEmit` and returns the errors |
 | `megh_migrate_status` | `megh migrate:status --json` |
@@ -150,6 +151,7 @@ yourself.
 | `megh-review-project` | Checks the setup, routes, structure and type errors, and points out problems |
 | `megh-explain` | Explains a Megh feature (`topic`) from the docs, with an example that fits the project |
 | `megh-add-resource` | Adds a table, model and CRUD API for `name` (with optional `fields`), migrates, and checks it compiles. Not offered in read-only mode |
+| `megh-add-ai-tools` | Marks routes (`routes`, optional) as [LLM tools](/ai/tools) with `@Tool()`, then checks them with `megh_list_ai_tools`. Not offered in read-only mode |
 
 ## Use it as a library
 
